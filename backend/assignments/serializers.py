@@ -153,29 +153,80 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
 - 答案有严重错误但有部分理解：20-40%分数
 - 答案完全错误或无关：0分
 """
-            
+
+            print(f"[DEBUG] 开始AI批改，题目：{question.question_text[:30]}...")
             ai_response = ask_gemini(prompt, temperature=0.3)
-            
+            print(f"[DEBUG] AI响应：{ai_response[:100]}...")
+
             # 解析AI响应
             lines = ai_response.strip().split('\n')
             score = 0
             feedback = "AI批改暂时不可用"
-            
+
             for line in lines:
-                if line.startswith('分数：'):
+                line = line.strip()
+                if '分数' in line and ('：' in line or ':' in line):
                     try:
-                        score_text = line.replace('分数：', '').strip()
-                        score = int(float(score_text))
+                        # 提取分数部分，处理Markdown格式
+                        if '：' in line:
+                            score_part = line.split('：')[1]
+                        else:
+                            score_part = line.split(':')[1]
+
+                        # 移除Markdown格式符号
+                        score_part = score_part.replace('*', '').strip()
+
+                        # 处理 "19/20" 或 "19" 格式
+                        if '/' in score_part:
+                            score_text = score_part.split('/')[0]
+                        else:
+                            score_text = score_part
+
+                        score = int(float(score_text.strip()))
                         score = max(0, min(score, question.score))  # 确保分数在有效范围内
-                    except:
+                        print(f"[DEBUG] 解析得分：{score}")
+                    except Exception as parse_error:
+                        print(f"[DEBUG] 分数解析失败：{parse_error}")
                         score = 0
-                elif line.startswith('反馈：'):
-                    feedback = line.replace('反馈：', '').strip()
-            
+                elif '反馈' in line and ('：' in line or ':' in line):
+                    try:
+                        if '：' in line:
+                            feedback_part = line.split('：', 1)[1].strip()
+                        else:
+                            feedback_part = line.split(':', 1)[1].strip()
+
+                        # 移除Markdown格式符号
+                        feedback = feedback_part.replace('*', '').strip()
+                        print(f"[DEBUG] 解析反馈：{feedback[:50]}...")
+                    except:
+                        pass
+
+            # 如果没有解析到反馈，从响应中提取反馈部分
+            if feedback == "AI批改暂时不可用" and ai_response:
+                # 尝试找到反馈部分
+                response_lower = ai_response.lower()
+                if '反馈' in response_lower:
+                    # 找到反馈关键词后的内容
+                    feedback_start = ai_response.find('反馈')
+                    if feedback_start != -1:
+                        # 从反馈关键词开始提取
+                        feedback_section = ai_response[feedback_start:]
+                        # 移除反馈标题行
+                        feedback_lines = feedback_section.split('\n')[1:]  # 跳过标题行
+                        feedback = '\n'.join(feedback_lines).strip()
+                        # 移除Markdown符号
+                        feedback = feedback.replace('*', '').strip()
+
+                # 如果还是没有找到，使用整个响应
+                if not feedback or feedback == "AI批改暂时不可用":
+                    feedback = ai_response.strip().replace('*', '')
+
+            print(f"[DEBUG] 最终结果：分数={score}, 反馈长度={len(feedback)}")
             return score, feedback
-            
+
         except Exception as e:
             # AI批改失败时的降级处理
+            print(f"[DEBUG] AI批改异常：{str(e)}")
             return 0, f"AI批改失败，请联系教师人工批改。错误：{str(e)}"
     
     def _generate_overall_feedback(self, submission):
