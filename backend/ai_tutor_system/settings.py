@@ -48,7 +48,7 @@ INSTALLED_APPS = [
 
     # Local apps
     "accounts",
-    # "assignments",
+    "assignments",
     # "qa",
     # "reports",
 ]

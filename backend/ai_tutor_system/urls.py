@@ -31,7 +31,7 @@ urlpatterns = [
 
     # API v1 routes
     path('api/v1/auth/', include('accounts.urls')),
-    # path('api/v1/assignments/', include('assignments.urls')),
+    path('api/v1/assignments/', include('assignments.urls')),
     # path('api/v1/qa/', include('qa.urls')),
     # path('api/v1/reports/', include('reports.urls')),
 ]

@@ -236,13 +236,10 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
     assignment_title = serializers.CharField(source='assignment.title')
     total_score = serializers.IntegerField(source='assignment.total_score')
     answers = AnswerDetailSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = Submission
         fields = [
             'id', 'assignment_title', 'submitted_at', 'graded_at',
             'total_score', 'obtained_score', 'answers', 'overall_feedback'
         ]
-        extra_kwargs = {
-            'id': {'source': 'id', 'read_only': True},
-        }

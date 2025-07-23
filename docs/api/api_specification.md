@@ -141,7 +141,7 @@
 #### 2.1 作业管理（教师端）
 
 ##### 2.1.1 创建作业
-- **URL**: `POST /assignments`
+- **URL**: `POST /assignments/create`
 - **描述**: 教师创建作业
 - **权限**: 仅教师
 - **请求体**:
@@ -174,7 +174,7 @@
 ```
 
 ##### 2.1.2 获取作业列表
-- **URL**: `GET /assignments`
+- **URL**: `GET /assignments/list`
 - **描述**: 获取作业列表
 - **查询参数**:
   - `page`: 页码（默认1）
