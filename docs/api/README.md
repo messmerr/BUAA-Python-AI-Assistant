@@ -36,7 +36,7 @@
 - **数据库**: SQLite (开发) / PostgreSQL (生产)
 - **认证**: JWT Token
 - **实时通信**: WebSocket (Django Channels)
-- **文件处理**: PIL + OCR库
+- **AI处理**: 大模型API (批改、OCR、答疑统一处理)
 
 ### 前端技术栈
 - **框架**: Vue 3 + TypeScript
@@ -74,9 +74,7 @@
 └── 图片提交 (ImageSubmission) [1:1]
 
 问答 (QAQuestion)
-├── 回答 (QAAnswer) [1:1]
-├── 相关知识点 (RelatedTopic) [1:N]
-└── 搜索结果 (WebSearchResult) [1:N]
+└── 回答 (QAAnswer) [1:1]
 ```
 
 ### 关键字段设计
@@ -108,7 +106,7 @@
 
 ## 📡 API接口概览
 
-### 必做功能接口 (20个)
+### 必做功能接口 (18个)
 
 #### 用户认证 (5个)
 - `POST /auth/register` - 用户注册
@@ -138,15 +136,13 @@
 - `GET /reports/{id}` - 获取报告详情
 - `DELETE /reports/{id}` - 删除报告
 
-### 选做功能接口 (15个)
+### 选做功能接口 (12个)
 
-#### 图片识别 (2个)
-- `POST /assignments/{id}/submissions/image` - 上传图片作业
-- `GET /assignments/{id}/submissions/{sub_id}/ocr` - 获取OCR结果
+#### 图片识别 (1个)
+- `POST /assignments/{id}/submissions/image` - 上传图片作业(AI自动OCR+批改)
 
-#### 扩展答疑 (2个)
-- `POST /qa/questions/search` - 网络搜索答疑
-- `POST /qa/questions/ai` - 大模型问答
+#### 高级答疑 (1个)
+- `POST /qa/questions/advanced` - 深度AI问答
 
 #### 资源推荐 (3个)
 - `GET /recommendations` - 获取个性化推荐

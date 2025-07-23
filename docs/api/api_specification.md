@@ -153,8 +153,7 @@
         {
             "question_text": "string",
             "reference_answer": "string",
-            "score": "integer",
-            "question_type": "text|choice|essay"
+            "score": "integer"
         }
     ],
     "deadline": "datetime",
@@ -225,8 +224,7 @@
                 "id": "uuid",
                 "question_text": "string",
                 "reference_answer": "string",
-                "score": "integer",
-                "question_type": "text|choice|essay"
+                "score": "integer"
             }
         ],
         "deadline": "datetime",
@@ -261,8 +259,7 @@
     "data": {
         "submission_id": "uuid",
         "submitted_at": "datetime",
-        "auto_score": "integer",
-        "status": "submitted|graded"
+        "status": "submitted|grading|graded"
     }
 }
 ```
@@ -290,7 +287,7 @@
                 "reference_answer": "string",
                 "score": "integer",
                 "obtained_score": "integer",
-                "feedback": "string"
+                "ai_feedback": "string"
             }
         ],
         "overall_feedback": "string"
@@ -302,7 +299,7 @@
 
 #### 3.1 提问
 - **URL**: `POST /qa/questions`
-- **描述**: 学生提交问题
+- **描述**: 学生提交问题，AI自动回答
 - **权限**: 仅学生
 - **请求体**:
 ```json
@@ -319,9 +316,7 @@
     "message": "问题提交成功",
     "data": {
         "question_id": "uuid",
-        "answer": "string",
-        "confidence": "float", // 答案置信度
-        "related_topics": ["string"], // 相关知识点
+        "ai_answer": "string",
         "created_at": "datetime"
     }
 }
@@ -344,9 +339,8 @@
             {
                 "id": "uuid",
                 "question_text": "string",
-                "answer": "string",
+                "ai_answer": "string",
                 "subject": "string",
-                "confidence": "float",
                 "created_at": "datetime"
             }
         ],
@@ -440,14 +434,14 @@
         }
     }
 }
-
+```
 ## 二、选做功能接口
 
 ### 1. 图片作业识别功能
 
 #### 1.1 上传图片作业
 - **URL**: `POST /assignments/{assignment_id}/submissions/image`
-- **描述**: 上传图片形式的作业（如手写作业）
+- **描述**: 上传图片形式的作业，AI自动OCR识别并批改
 - **权限**: 仅学生
 - **请求体**: `multipart/form-data`
 ```
@@ -457,93 +451,40 @@ image: file (支持jpg, png, pdf格式)
 ```json
 {
     "code": 201,
-    "message": "图片上传成功",
+    "message": "图片作业提交成功",
     "data": {
         "submission_id": "uuid",
         "image_url": "string",
-        "ocr_status": "processing|completed|failed",
-        "extracted_text": "string", // OCR识别结果
+        "status": "submitted|processing|graded",
         "submitted_at": "datetime"
     }
 }
 ```
 
-#### 1.2 获取OCR识别结果
-- **URL**: `GET /assignments/{assignment_id}/submissions/{submission_id}/ocr`
-- **描述**: 获取图片文字识别结果
-- **响应**:
-```json
-{
-    "code": 200,
-    "message": "获取成功",
-    "data": {
-        "submission_id": "uuid",
-        "ocr_status": "processing|completed|failed",
-        "extracted_text": "string",
-        "confidence": "float",
-        "processed_at": "datetime"
-    }
-}
-```
+### 2. 高级答疑功能
 
-### 2. 扩展答疑功能
-
-#### 2.1 网络搜索答疑
-- **URL**: `POST /qa/questions/search`
-- **描述**: 当知识库无答案时，搜索网络资源
-- **权限**: 仅学生
-- **请求体**:
-```json
-{
-    "question_text": "string",
-    "search_engines": ["google", "baidu", "bing"], // 可选
-    "max_results": "integer" // 默认5
-}
-```
-- **响应**:
-```json
-{
-    "code": 200,
-    "message": "搜索完成",
-    "data": {
-        "question_id": "uuid",
-        "search_results": [
-            {
-                "title": "string",
-                "url": "string",
-                "snippet": "string",
-                "source": "string"
-            }
-        ],
-        "ai_summary": "string", // AI整合的答案
-        "created_at": "datetime"
-    }
-}
-```
-
-#### 2.2 大模型问答
-- **URL**: `POST /qa/questions/ai`
-- **描述**: 使用大模型回答问题
+#### 2.1 深度问答
+- **URL**: `POST /qa/questions/advanced`
+- **描述**: 复杂问题的深度AI分析
 - **权限**: 仅学生
 - **请求体**:
 ```json
 {
     "question_text": "string",
     "context": "string", // 可选上下文
-    "model": "gpt|claude|qwen" // 可选模型
+    "difficulty": "basic|intermediate|advanced"
 }
 ```
 - **响应**:
 ```json
 {
     "code": 200,
-    "message": "回答生成成功",
+    "message": "深度分析完成",
     "data": {
         "question_id": "uuid",
-        "answer": "string",
-        "model_used": "string",
-        "confidence": "float",
-        "tokens_used": "integer",
+        "ai_answer": "string",
+        "explanation": "string", // 详细解释
+        "examples": ["string"], // 相关例子
         "created_at": "datetime"
     }
 }

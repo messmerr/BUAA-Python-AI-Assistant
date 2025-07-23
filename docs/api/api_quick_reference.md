@@ -4,6 +4,7 @@
 - **Base URL**: `http://localhost:8000/api/v1`
 - **认证**: `Authorization: Bearer <jwt_token>`
 - **格式**: JSON
+- **AI处理**: 所有批改、OCR、答疑均由大模型API处理
 
 ## 必做功能接口
 
@@ -43,13 +44,12 @@
 | 方法 | 路径 | 描述 | 权限 |
 |------|------|------|------|
 | POST | `/assignments/{id}/submissions/image` | 上传图片作业 | 学生 |
-| GET | `/assignments/{id}/submissions/{sub_id}/ocr` | 获取OCR结果 | 学生/教师 |
 
-### 扩展答疑
+
+### 高级答疑
 | 方法 | 路径 | 描述 | 权限 |
 |------|------|------|------|
-| POST | `/qa/questions/search` | 网络搜索答疑 | 学生 |
-| POST | `/qa/questions/ai` | 大模型问答 | 学生 |
+| POST | `/qa/questions/advanced` | 深度AI问答 | 学生 |
 
 ### 资源推荐
 | 方法 | 路径 | 描述 | 权限 |
@@ -149,6 +149,18 @@ curl -X POST http://localhost:8000/api/v1/qa/questions \
     "question_text": "Python中列表和元组的区别是什么？",
     "subject": "Python编程",
     "context": "正在学习Python数据结构"
+  }'
+```
+
+### 深度问答
+```bash
+curl -X POST http://localhost:8000/api/v1/qa/questions/advanced \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <student_token>" \
+  -d '{
+    "question_text": "解释机器学习中的过拟合现象",
+    "context": "正在学习机器学习算法",
+    "difficulty": "advanced"
   }'
 ```
 

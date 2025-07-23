@@ -70,20 +70,13 @@ class Assignment(models.Model):
 ```python
 class Question(models.Model):
     """作业问题模型"""
-    QUESTION_TYPE_CHOICES = (
-        ('text', '文本题'),
-        ('choice', '选择题'),
-        ('essay', '论述题'),
-    )
-    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='questions')
     question_text = models.TextField()
-    question_type = models.CharField(max_length=10, choices=QUESTION_TYPE_CHOICES, default='text')
     reference_answer = models.TextField()
     score = models.IntegerField()
     order = models.IntegerField(default=0)
-    
+
     class Meta:
         db_table = 'questions'
         verbose_name = '问题'
@@ -128,8 +121,8 @@ class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers')
     answer_text = models.TextField()
     score = models.IntegerField(null=True, blank=True)
-    feedback = models.TextField(blank=True)
-    
+    ai_feedback = models.TextField(blank=True)  # AI生成的反馈
+
     class Meta:
         db_table = 'answers'
         verbose_name = '答案'
@@ -141,20 +134,12 @@ class Answer(models.Model):
 ```python
 class ImageSubmission(models.Model):
     """图片作业提交模型"""
-    OCR_STATUS_CHOICES = (
-        ('processing', '处理中'),
-        ('completed', '已完成'),
-        ('failed', '失败'),
-    )
-    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     submission = models.OneToOneField(Submission, on_delete=models.CASCADE, related_name='image_submission')
     image = models.ImageField(upload_to='assignments/images/')
-    ocr_status = models.CharField(max_length=10, choices=OCR_STATUS_CHOICES, default='processing')
-    extracted_text = models.TextField(blank=True)
-    confidence = models.FloatField(null=True, blank=True)
+    extracted_text = models.TextField(blank=True)  # AI OCR提取的文本
     processed_at = models.DateTimeField(null=True, blank=True)
-    
+
     class Meta:
         db_table = 'image_submissions'
         verbose_name = '图片作业'
@@ -187,46 +172,15 @@ class QAAnswer(models.Model):
     """问题回答模型"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     question = models.OneToOneField(QAQuestion, on_delete=models.CASCADE, related_name='answer')
-    answer_text = models.TextField()
-    confidence = models.FloatField(default=0.0)
-    source = models.CharField(max_length=20, default='knowledge_base')  # knowledge_base, web_search, ai_model
+    ai_answer = models.TextField()  # AI生成的回答
+    explanation = models.TextField(blank=True)  # 详细解释
+    examples = models.JSONField(default=list)  # 相关例子
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         db_table = 'qa_answers'
         verbose_name = '回答'
         verbose_name_plural = '回答'
-```
-
-### 3. RelatedTopic 模型
-```python
-class RelatedTopic(models.Model):
-    """相关知识点模型"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    question = models.ForeignKey(QAQuestion, on_delete=models.CASCADE, related_name='related_topics')
-    topic_name = models.CharField(max_length=100)
-    
-    class Meta:
-        db_table = 'related_topics'
-        verbose_name = '相关知识点'
-        verbose_name_plural = '相关知识点'
-```
-
-### 4. WebSearchResult 模型 (选做功能)
-```python
-class WebSearchResult(models.Model):
-    """网络搜索结果模型"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    question = models.ForeignKey(QAQuestion, on_delete=models.CASCADE, related_name='search_results')
-    title = models.CharField(max_length=200)
-    url = models.URLField()
-    snippet = models.TextField()
-    source = models.CharField(max_length=20)  # google, baidu, bing
-    
-    class Meta:
-        db_table = 'web_search_results'
-        verbose_name = '搜索结果'
-        verbose_name_plural = '搜索结果'
 ```
 
 ## 四、学习报告功能
