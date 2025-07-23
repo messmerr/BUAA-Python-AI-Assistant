@@ -46,8 +46,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "drf_spectacular",
 
-    # Local apps (will be added as we create them)
-    # "accounts",
+    # Local apps
+    "accounts",
     # "assignments",
     # "qa",
     # "reports",
@@ -206,5 +206,5 @@ SPECTACULAR_SETTINGS = {
     'SCHEMA_PATH_PREFIX': '/api/v1/',
 }
 
-# Custom user model (will be set when we create accounts app)
-# AUTH_USER_MODEL = 'accounts.User'
+# Custom user model
+AUTH_USER_MODEL = 'accounts.User'
