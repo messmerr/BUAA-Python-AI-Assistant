@@ -106,7 +106,7 @@
 
 ## 📡 API接口概览
 
-### 必做功能接口 (18个)
+### 必做功能接口 (16个)
 
 #### 用户认证 (5个)
 - `POST /auth/register` - 用户注册
@@ -125,24 +125,21 @@
 - `GET /assignments/{id}/submissions` - 获取提交列表
 - `GET /assignments/{id}/submissions/{sub_id}` - 获取批改结果
 
-#### 智能答疑 (3个)
+#### 智能答疑 (2个)
 - `POST /qa/questions` - 提交问题
-- `GET /qa/questions` - 获取问答历史
 - `GET /qa/questions/{id}` - 获取问题详情
 
-#### 学习报告 (4个)
+#### 学习报告 (1个)
 - `POST /reports/generate` - 生成学习报告
-- `GET /reports` - 获取历史报告
-- `GET /reports/{id}` - 获取报告详情
-- `DELETE /reports/{id}` - 删除报告
 
-### 选做功能接口 (12个)
+### 选做功能接口 (14个)
 
 #### 图片识别 (1个)
 - `POST /assignments/{id}/submissions/image` - 上传图片作业(AI自动OCR+批改)
 
-#### 高级答疑 (1个)
+#### 高级答疑 (2个)
 - `POST /qa/questions/advanced` - 深度AI问答
+- `GET /qa/questions` - 获取问答历史
 
 #### 资源推荐 (3个)
 - `GET /recommendations` - 获取个性化推荐
@@ -158,6 +155,11 @@
 - `POST /chat/messages` - 发送消息
 - `GET /chat/conversations/{user_id}` - 获取聊天记录
 - `WS /ws/chat/{user_id}/` - WebSocket连接
+
+#### 报告管理 (3个)
+- `GET /reports` - 获取历史报告
+- `GET /reports/{id}` - 获取报告详情
+- `DELETE /reports/{id}` - 删除报告
 
 #### 通用接口 (2个)
 - `POST /files/upload` - 文件上传
