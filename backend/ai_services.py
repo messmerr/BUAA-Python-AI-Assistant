@@ -32,8 +32,8 @@ class GeminiAIService:
         # 配置API
         genai.configure(api_key=self.api_key)
         
-        # 默认模型名称
-        self.model_name = "gemini-2.5-pro"
+        # 默认模型名称 - 使用更快的flash模型便于调试
+        self.model_name = "gemini-2.5-flash"
         
         # 安全设置 - 完全不过滤，适用于教育场景
         self.safety_settings = {

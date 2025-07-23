@@ -132,19 +132,15 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
         return submission
     
     def _grade_answer_with_ai(self, question, student_answer):
-        """使用AI批改单个答案"""
+        """使用AI批改单个答案 - 使用XML标签格式"""
         try:
             prompt = f"""
-请作为一名专业教师，批改以下学生答案：
+请作为一名专业教师，批改以下学生答案。
 
 题目：{question.question_text}
 参考答案：{question.reference_answer}
 学生答案：{student_answer}
 满分：{question.score}分
-
-请按以下格式回复：
-分数：[0-{question.score}]
-反馈：[具体的批改意见和建议]
 
 评分标准：
 - 答案完全正确且完整：满分
@@ -152,74 +148,54 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
 - 答案部分正确：50-70%分数
 - 答案有严重错误但有部分理解：20-40%分数
 - 答案完全错误或无关：0分
+
+请严格按照以下XML格式回复，不要添加任何其他内容：
+
+<score>{question.score}分制下的具体分数，只写数字</score>
+<feedback>详细的批改意见和建议，包括优点、不足和改进建议</feedback>
 """
 
             print(f"[DEBUG] 开始AI批改，题目：{question.question_text[:30]}...")
             ai_response = ask_gemini(prompt, temperature=0.3)
-            print(f"[DEBUG] AI响应：{ai_response[:100]}...")
+            print(f"[DEBUG] AI响应：{ai_response[:200]}...")
 
-            # 解析AI响应
-            lines = ai_response.strip().split('\n')
+            # 使用XML标签解析AI响应
             score = 0
             feedback = "AI批改暂时不可用"
 
-            for line in lines:
-                line = line.strip()
-                if '分数' in line and ('：' in line or ':' in line):
-                    try:
-                        # 提取分数部分，处理Markdown格式
-                        if '：' in line:
-                            score_part = line.split('：')[1]
-                        else:
-                            score_part = line.split(':')[1]
-
-                        # 移除Markdown格式符号
-                        score_part = score_part.replace('*', '').strip()
-
-                        # 处理 "19/20" 或 "19" 格式
-                        if '/' in score_part:
-                            score_text = score_part.split('/')[0]
-                        else:
-                            score_text = score_part
-
-                        score = int(float(score_text.strip()))
+            # 解析分数标签
+            try:
+                import re
+                score_match = re.search(r'<score>(.*?)</score>', ai_response, re.DOTALL)
+                if score_match:
+                    score_text = score_match.group(1).strip()
+                    # 提取数字
+                    score_numbers = re.findall(r'\d+', score_text)
+                    if score_numbers:
+                        score = int(score_numbers[0])
                         score = max(0, min(score, question.score))  # 确保分数在有效范围内
                         print(f"[DEBUG] 解析得分：{score}")
-                    except Exception as parse_error:
-                        print(f"[DEBUG] 分数解析失败：{parse_error}")
-                        score = 0
-                elif '反馈' in line and ('：' in line or ':' in line):
-                    try:
-                        if '：' in line:
-                            feedback_part = line.split('：', 1)[1].strip()
-                        else:
-                            feedback_part = line.split(':', 1)[1].strip()
+                    else:
+                        print(f"[DEBUG] 分数标签中未找到数字：{score_text}")
+                else:
+                    print(f"[DEBUG] 未找到<score>标签")
+            except Exception as parse_error:
+                print(f"[DEBUG] 分数解析失败：{parse_error}")
+                score = 0
 
-                        # 移除Markdown格式符号
-                        feedback = feedback_part.replace('*', '').strip()
-                        print(f"[DEBUG] 解析反馈：{feedback[:50]}...")
-                    except:
-                        pass
-
-            # 如果没有解析到反馈，从响应中提取反馈部分
-            if feedback == "AI批改暂时不可用" and ai_response:
-                # 尝试找到反馈部分
-                response_lower = ai_response.lower()
-                if '反馈' in response_lower:
-                    # 找到反馈关键词后的内容
-                    feedback_start = ai_response.find('反馈')
-                    if feedback_start != -1:
-                        # 从反馈关键词开始提取
-                        feedback_section = ai_response[feedback_start:]
-                        # 移除反馈标题行
-                        feedback_lines = feedback_section.split('\n')[1:]  # 跳过标题行
-                        feedback = '\n'.join(feedback_lines).strip()
-                        # 移除Markdown符号
-                        feedback = feedback.replace('*', '').strip()
-
-                # 如果还是没有找到，使用整个响应
-                if not feedback or feedback == "AI批改暂时不可用":
-                    feedback = ai_response.strip().replace('*', '')
+            # 解析反馈标签
+            try:
+                feedback_match = re.search(r'<feedback>(.*?)</feedback>', ai_response, re.DOTALL)
+                if feedback_match:
+                    feedback = feedback_match.group(1).strip()
+                    print(f"[DEBUG] 解析反馈：{feedback[:50]}...")
+                else:
+                    print(f"[DEBUG] 未找到<feedback>标签")
+                    # 如果没有找到标签，尝试使用整个响应作为反馈
+                    feedback = ai_response.strip()
+            except Exception as parse_error:
+                print(f"[DEBUG] 反馈解析失败：{parse_error}")
+                feedback = ai_response.strip()
 
             print(f"[DEBUG] 最终结果：分数={score}, 反馈长度={len(feedback)}")
             return score, feedback
@@ -230,15 +206,15 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             return 0, f"AI批改失败，请联系教师人工批改。错误：{str(e)}"
     
     def _generate_overall_feedback(self, submission):
-        """生成总体反馈"""
+        """生成总体反馈 - 使用XML标签格式"""
         try:
             answers = submission.answers.all()
             total_possible = submission.assignment.total_score
             total_obtained = submission.obtained_score
             percentage = (total_obtained / total_possible) * 100 if total_possible > 0 else 0
-            
+
             prompt = f"""
-请为学生的作业提交生成一个总体评价和建议：
+请为学生的作业提交生成一个总体评价和建议。
 
 作业标题：{submission.assignment.title}
 总分：{total_possible}分
@@ -249,13 +225,29 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
 """
             for answer in answers:
                 prompt += f"- {answer.question.question_text[:50]}... 得分：{answer.obtained_score}/{answer.question.score}\n"
-            
-            prompt += "\n请提供简洁的总体评价和学习建议（100字以内）："
-            
-            overall_feedback = ask_gemini(prompt, temperature=0.5, max_tokens=200)
-            return overall_feedback.strip()
-            
+
+            prompt += """
+请严格按照以下XML格式回复，提供简洁的总体评价和学习建议（100字以内）：
+
+<overall_feedback>总体评价和学习建议</overall_feedback>
+"""
+
+            ai_response = ask_gemini(prompt, temperature=0.5, max_tokens=200)
+
+            # 解析总体反馈标签
+            try:
+                import re
+                feedback_match = re.search(r'<overall_feedback>(.*?)</overall_feedback>', ai_response, re.DOTALL)
+                if feedback_match:
+                    return feedback_match.group(1).strip()
+                else:
+                    # 如果没有找到标签，使用整个响应
+                    return ai_response.strip()
+            except:
+                return ai_response.strip()
+
         except Exception:
+            # 降级处理
             if percentage >= 90:
                 return "优秀！继续保持这种学习状态。"
             elif percentage >= 80:
