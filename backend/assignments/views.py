@@ -335,3 +335,99 @@ def get_assignment_result(request, assignment_id):
         'message': '获取成功',
         'data': serializer.data
     }, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter('page', OpenApiTypes.INT, description='页码'),
+        OpenApiParameter('page_size', OpenApiTypes.INT, description='每页数量'),
+        OpenApiParameter('student', OpenApiTypes.STR, description='学生用户名筛选'),
+    ],
+    responses={
+        200: OpenApiResponse(description="获取成功"),
+        403: OpenApiResponse(description="权限不足"),
+    },
+    description="获取作业提交列表（教师查看所有提交，学生查看自己的提交）"
+)
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_submissions_list(request, assignment_id):
+    """获取作业提交列表"""
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    # 权限检查
+    if request.user.role == 'teacher':
+        # 教师只能查看自己创建的作业的提交
+        if assignment.created_by != request.user:
+            return Response({
+                'code': 403,
+                'message': '权限不足：您只能查看自己创建的作业的提交情况'
+            }, status=status.HTTP_403_FORBIDDEN)
+    elif request.user.role == 'student':
+        # 学生只能查看自己的提交
+        pass
+    else:
+        return Response({
+            'code': 403,
+            'message': '权限不足'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    # 获取查询参数
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 10))
+    student_filter = request.GET.get('student', None)
+
+    # 构建查询
+    queryset = Submission.objects.filter(assignment=assignment)
+
+    # 根据用户角色过滤
+    if request.user.role == 'student':
+        queryset = queryset.filter(student=request.user)
+
+    # 学生筛选（仅教师可用）
+    if student_filter and request.user.role == 'teacher':
+        queryset = queryset.filter(student__username__icontains=student_filter)
+
+    # 排序
+    queryset = queryset.order_by('-submitted_at')
+
+    # 分页
+    from django.core.paginator import Paginator
+    paginator = Paginator(queryset, page_size)
+    page_obj = paginator.get_page(page)
+
+    # 序列化数据
+    submissions_data = []
+    for submission in page_obj:
+        submissions_data.append({
+            'id': str(submission.id),
+            'student_id': str(submission.student.id),
+            'student_name': submission.student.real_name or submission.student.username,
+            'student_username': submission.student.username,
+            'status': submission.status,
+            'obtained_score': submission.obtained_score,
+            'total_score': assignment.total_score,
+            'submitted_at': submission.submitted_at,
+            'graded_at': submission.graded_at,
+        })
+
+    return Response({
+        'code': 200,
+        'message': '获取成功',
+        'data': {
+            'submissions': submissions_data,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total': paginator.count,
+                'total_pages': paginator.num_pages
+            },
+            'assignment_info': {
+                'id': str(assignment.id),
+                'title': assignment.title,
+                'total_score': assignment.total_score,
+                'deadline': assignment.deadline,
+                'submission_count': queryset.count()
+            }
+        }
+    }, status=status.HTTP_200_OK)

@@ -11,6 +11,7 @@ urlpatterns = [
 
     # 作业提交
     path('<uuid:assignment_id>/submissions/', views.submit_assignment, name='submit_assignment'),  # POST - 提交作业
+    path('<uuid:assignment_id>/submissions/list/', views.get_submissions_list, name='get_submissions'),  # GET - 获取提交列表
     path('<uuid:assignment_id>/result/', views.get_assignment_result, name='assignment_result'),  # GET - 获取批改结果
     # 保留旧接口以兼容
     path('<uuid:assignment_id>/submissions/<uuid:submission_id>/', views.get_submission_result, name='submission_result'),  # GET - 获取批改结果(旧)
