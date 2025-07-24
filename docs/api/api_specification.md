@@ -360,11 +360,102 @@
 }
 ```
 
-### 3. 智能答疑功能
+### 3. 智能答疑功能 ✅ 已升级
 
-#### 3.1 提问
+智能答疑模块提供AI驱动的多轮对话功能，支持会话管理和上下文记忆。
+
+#### 3.1 发送聊天消息（新接口）
+- **URL**: `POST /qa/chat/`
+- **描述**: 发送聊天消息，支持多轮对话和上下文记忆
+- **权限**: 仅学生
+- **请求体**:
+```json
+{
+    "session_id": "uuid", // 可选，新对话时不传
+    "message": "string",
+    "subject": "string" // 可选，默认为'通用'
+}
+```
+- **响应**:
+```json
+{
+    "code": 200,
+    "message": "聊天成功",
+    "data": {
+        "session_id": "uuid",
+        "ai_response": "string",
+        "created_at": "datetime"
+    }
+}
+```
+
+#### 3.2 获取会话列表（新接口）
+- **URL**: `GET /qa/sessions/`
+- **描述**: 获取用户的聊天会话列表
+- **权限**: 学生查看自己的，教师查看所有
+- **查询参数**:
+  - `page`: 页码
+  - `page_size`: 每页数量
+  - `subject`: 学科筛选
+- **响应**:
+```json
+{
+    "code": 200,
+    "message": "获取成功",
+    "data": {
+        "sessions": [
+            {
+                "id": "uuid",
+                "subject": "string",
+                "created_at": "datetime",
+                "updated_at": "datetime",
+                "last_message": {
+                    "role": "user|ai",
+                    "content": "string",
+                    "created_at": "datetime"
+                },
+                "message_count": 10
+            }
+        ],
+        "pagination": {
+            "page": 1,
+            "page_size": 10,
+            "total": 50,
+            "total_pages": 5
+        }
+    }
+}
+```
+
+#### 3.3 获取会话详情（新接口）
+- **URL**: `GET /qa/sessions/{session_id}/`
+- **描述**: 获取指定会话的完整对话记录
+- **权限**: 学生查看自己的，教师查看所有
+- **响应**:
+```json
+{
+    "code": 200,
+    "message": "获取成功",
+    "data": {
+        "id": "uuid",
+        "subject": "string",
+        "created_at": "datetime",
+        "updated_at": "datetime",
+        "messages": [
+            {
+                "id": "uuid",
+                "role": "user|ai",
+                "content": "string",
+                "created_at": "datetime"
+            }
+        ]
+    }
+}
+```
+
+#### 3.4 提问（旧接口，保持兼容）
 - **URL**: `POST /qa/questions/`
-- **描述**: 学生提交问题，AI自动回答
+- **描述**: 学生提交问题，AI自动回答（单轮对话）
 - **权限**: 仅学生
 - **请求体**:
 ```json
@@ -387,7 +478,7 @@
 }
 ```
 
-#### 3.2 获取问答历史
+#### 3.5 获取问答历史（旧接口，保持兼容）
 - **URL**: `GET /qa/questions/list/`
 - **描述**: 获取用户问答历史（学生查看自己的，教师查看所有）
 - **查询参数**:
