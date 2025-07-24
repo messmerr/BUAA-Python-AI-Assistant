@@ -163,7 +163,7 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     loading.value = true
     try {
       const response = await assignmentsApi.getSubmissions(assignmentId, params)
-      submissions.value = response.data.results
+      submissions.value = response.data.submissions
       return response.data
     } catch (error) {
       console.error('获取提交列表失败:', error)

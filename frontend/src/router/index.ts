@@ -60,6 +60,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '批改结果' }
       },
       {
+        path: '/assignments/:id/submissions',
+        name: 'AssignmentSubmissions',
+        component: () => import('@/views/assignments/AssignmentSubmissionsView.vue'),
+        meta: { title: '提交情况', roles: ['teacher'] }
+      },
+      {
         path: '/qa',
         name: 'QA',
         component: () => import('@/views/qa/QAView.vue'),

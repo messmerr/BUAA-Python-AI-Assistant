@@ -75,8 +75,33 @@ export const assignmentsApi = {
     page?: number
     page_size?: number
     student?: string
-  }): Promise<ApiResponse<PaginatedResponse<Submission>>> {
-    return request.get(`/assignments/${assignmentId}/submissions/`, { params })
+  }): Promise<ApiResponse<{
+    submissions: Array<{
+      id: string
+      student_id: string
+      student_name: string
+      student_username: string
+      status: string
+      obtained_score: number
+      total_score: number
+      submitted_at: string
+      graded_at?: string
+    }>
+    pagination: {
+      page: number
+      page_size: number
+      total: number
+      total_pages: number
+    }
+    assignment_info: {
+      id: string
+      title: string
+      total_score: number
+      deadline: string
+      submission_count: number
+    }
+  }>> {
+    return request.get(`/assignments/${assignmentId}/submissions/list/`, { params })
   },
 
   /**

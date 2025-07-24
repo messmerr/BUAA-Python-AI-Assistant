@@ -46,11 +46,8 @@
 
           <!-- 教师视角 -->
           <template v-if="authStore.isTeacher">
-            <el-button @click="viewSubmissions">
+            <el-button type="primary" @click="viewSubmissions">
               查看提交情况
-            </el-button>
-            <el-button type="primary" @click="editAssignment">
-              编辑作业
             </el-button>
           </template>
         </div>
@@ -147,11 +144,7 @@ const viewSubmissions = () => {
   router.push(`/assignments/${assignmentId}/submissions`)
 }
 
-// 编辑作业（教师）
-const editAssignment = () => {
-  const assignmentId = route.params.id as string
-  router.push(`/assignments/${assignmentId}/edit`)
-}
+
 
 // 格式化截止时间
 const formatDeadline = (deadline: string) => {
