@@ -1,0 +1,4 @@
+// 导出所有store
+export { useAuthStore } from './auth'
+export { useAssignmentsStore } from './assignments'
+export { useQAStore } from './qa'
