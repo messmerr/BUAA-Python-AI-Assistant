@@ -10,10 +10,80 @@
         </div>
       </div>
       <div class="header-actions">
+        <el-button @click="toggleHistory" :type="showHistory ? 'primary' : 'default'">
+          <el-icon><Clock /></el-icon>
+          历史记录
+        </el-button>
         <el-button @click="clearChat" :disabled="messages.length === 0">
           <el-icon><Delete /></el-icon>
           清空对话
         </el-button>
+      </div>
+    </div>
+
+    <!-- 历史记录面板 -->
+    <div v-if="showHistory" class="history-panel">
+      <div class="history-header">
+        <h3>历史对话记录</h3>
+        <div class="history-filters">
+          <el-select
+            v-model="historySubjectFilter"
+            placeholder="筛选学科"
+            size="small"
+            style="width: 120px"
+            clearable
+            @change="fetchHistoryQuestions"
+          >
+            <el-option label="Python" value="Python" />
+            <el-option label="数学" value="数学" />
+            <el-option label="算法" value="算法" />
+            <el-option label="数据结构" value="数据结构" />
+            <el-option label="其他" value="其他" />
+          </el-select>
+        </div>
+      </div>
+
+      <div class="history-content">
+        <div v-if="qaStore.loading" class="history-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>加载中...</span>
+        </div>
+
+        <div v-else-if="historyQuestions.length === 0" class="history-empty">
+          <el-empty description="暂无历史记录" />
+        </div>
+
+        <div v-else class="history-list">
+          <div
+            v-for="question in historyQuestions"
+            :key="question.id"
+            class="history-item"
+            @click="loadHistoryQuestion(question)"
+          >
+            <div class="history-item-header">
+              <span class="history-subject">{{ question.subject }}</span>
+              <span class="history-time">{{ formatHistoryTime(question.created_at) }}</span>
+            </div>
+            <div class="history-question">
+              {{ question.question_text }}
+            </div>
+            <div class="history-answer">
+              {{ question.ai_answer.substring(0, 100) }}{{ question.ai_answer.length > 100 ? '...' : '' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div v-if="historyPagination.total > 0" class="history-pagination">
+          <el-pagination
+            v-model:current-page="historyPage"
+            :page-size="historyPageSize"
+            :total="historyPagination.total"
+            layout="prev, pager, next"
+            small
+            @current-change="handleHistoryPageChange"
+          />
+        </div>
       </div>
     </div>
 
@@ -145,7 +215,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { useQAStore } from '@/stores'
-import { ChatDotRound, User, Delete, CopyDocument, Promotion } from '@element-plus/icons-vue'
+import { ChatDotRound, User, Delete, CopyDocument, Promotion, Clock, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const qaStore = useQAStore()
@@ -164,6 +234,19 @@ const messages = ref<Array<{
 const inputMessage = ref('')
 const currentSubject = ref('Python')
 const isLoading = ref(false)
+
+// 历史记录相关
+const showHistory = ref(false)
+const historyQuestions = ref<any[]>([])
+const historySubjectFilter = ref('')
+const historyPage = ref(1)
+const historyPageSize = ref(10)
+const historyPagination = ref({
+  page: 1,
+  page_size: 10,
+  total: 0,
+  total_pages: 0
+})
 
 // DOM引用
 const messagesContainer = ref<HTMLElement>()
@@ -255,6 +338,96 @@ const clearChat = () => {
   messages.value = []
 }
 
+// 切换历史记录面板
+const toggleHistory = async () => {
+  showHistory.value = !showHistory.value
+  if (showHistory.value && historyQuestions.value.length === 0) {
+    await fetchHistoryQuestions()
+  }
+}
+
+// 获取历史问题列表
+const fetchHistoryQuestions = async () => {
+  try {
+    const params = {
+      page: historyPage.value,
+      page_size: historyPageSize.value,
+      subject: historySubjectFilter.value || undefined
+    }
+    const response = await qaStore.fetchQuestions(params)
+    historyQuestions.value = qaStore.questions
+    historyPagination.value = {
+      page: historyPage.value,
+      page_size: historyPageSize.value,
+      total: qaStore.total,
+      total_pages: Math.ceil(qaStore.total / historyPageSize.value)
+    }
+  } catch (error) {
+    console.error('获取历史记录失败:', error)
+  }
+}
+
+// 加载历史问题到当前对话
+const loadHistoryQuestion = (question: any) => {
+  // 清空当前对话
+  messages.value = []
+
+  // 添加历史问题和回答到当前对话
+  messages.value.push({
+    id: question.id + '_user',
+    type: 'user',
+    content: question.question_text,
+    timestamp: new Date(question.created_at),
+    subject: question.subject
+  })
+
+  messages.value.push({
+    id: question.id + '_ai',
+    type: 'ai',
+    content: question.ai_answer,
+    timestamp: new Date(question.created_at),
+    loading: false
+  })
+
+  // 关闭历史记录面板
+  showHistory.value = false
+
+  // 滚动到底部
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
+
+// 历史记录分页处理
+const handleHistoryPageChange = (page: number) => {
+  historyPage.value = page
+  fetchHistoryQuestions()
+}
+
+// 格式化历史记录时间
+const formatHistoryTime = (dateString: string) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+  if (days === 0) {
+    return date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } else if (days === 1) {
+    return '昨天'
+  } else if (days < 7) {
+    return `${days}天前`
+  } else {
+    return date.toLocaleDateString('zh-CN', {
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+}
+
 // 复制答案
 const copyAnswer = async (content: string) => {
   try {
@@ -324,6 +497,121 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.history-panel {
+  background: white;
+  border-bottom: 1px solid #e4e7ed;
+  max-height: 300px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.history-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.history-header h3 {
+  margin: 0;
+  color: #303133;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.history-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.history-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #606266;
+  gap: 8px;
+}
+
+.history-empty {
+  padding: 20px;
+}
+
+.history-list {
+  padding: 0;
+}
+
+.history-item {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.history-item:hover {
+  background: #f8f9fa;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.history-subject {
+  background: #e1f3ff;
+  color: #409eff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.history-time {
+  color: #909399;
+  font-size: 12px;
+}
+
+.history-question {
+  color: #303133;
+  font-weight: 500;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.history-answer {
+  color: #606266;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.history-pagination {
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
 }
 
 .header-info {
@@ -610,6 +898,21 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
+  }
+
+  .history-panel {
+    max-height: 250px;
+  }
+
+  .history-header {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .history-item {
+    padding: 12px 16px;
   }
 
   .chat-messages {
