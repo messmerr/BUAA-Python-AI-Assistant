@@ -10,7 +10,6 @@
 |---------|------|------|
 | [api_specification.md](./api_specification.md) | 完整的API接口规范 | 详细的接口定义、请求响应格式 |
 | [api_quick_reference.md](./api_quick_reference.md) | API快速参考手册 | 快速查找接口、示例代码 |
-| [database_models.md](./database_models.md) | 数据库模型设计 | Django模型定义、数据库结构 |
 
 ## 🎯 项目需求概述
 
@@ -190,8 +189,7 @@
 如有API设计相关问题，请参考：
 1. **详细规范**: [api_specification.md](./api_specification.md)
 2. **快速查询**: [api_quick_reference.md](./api_quick_reference.md)
-3. **数据模型**: [database_models.md](./database_models.md)
-4. **开发指南**: [../development/development_guide.md](../development/development_guide.md)
+3. **开发指南**: [../development/development_guide.md](../development/development_guide.md)
 
 ---
 
