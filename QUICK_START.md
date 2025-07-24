@@ -35,17 +35,8 @@ pip install -r requirements.txt
 
 #### 2.3 配置环境变量
 ```bash
-# 复制环境变量模板
 cp .env.example .env
-
-# 编辑 .env 文件，添加你的 Google AI API Key
-# GOOGLE_AI_API_KEY=your-api-key-here
 ```
-
-**🔑 获取 Google AI API Key:**
-1. 访问 [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. 创建新的 API Key
-3. 复制到 `.env` 文件中
 
 #### 2.4 数据库迁移
 ```bash
