@@ -18,10 +18,10 @@ class QuestionSerializer(serializers.ModelSerializer):
 class AssignmentCreateSerializer(serializers.ModelSerializer):
     """作业创建序列化器 - 严格按照API规范"""
     questions = QuestionSerializer(many=True)
-    
+
     class Meta:
         model = Assignment
-        fields = ['title', 'description', 'questions', 'deadline', 'total_score']
+        fields = ['title', 'description', 'subject', 'questions', 'deadline', 'total_score']
     
     def create(self, validated_data):
         """创建作业和问题"""
@@ -40,25 +40,79 @@ class AssignmentCreateSerializer(serializers.ModelSerializer):
 
 class AssignmentListSerializer(serializers.ModelSerializer):
     """作业列表序列化器 - 严格按照API规范"""
-    
+    is_completed = serializers.SerializerMethodField()
+    obtained_score = serializers.SerializerMethodField()
+
     class Meta:
         model = Assignment
         fields = [
-            'id', 'title', 'description', 'deadline', 
-            'total_score', 'submission_count', 'created_at'
+            'id', 'title', 'description', 'subject', 'deadline',
+            'total_score', 'submission_count', 'is_completed',
+            'obtained_score', 'created_at'
         ]
+
+    def get_is_completed(self, obj):
+        """获取学生是否已完成作业"""
+        request = self.context.get('request')
+        if request and request.user.role == 'student':
+            return Submission.objects.filter(
+                assignment=obj,
+                student=request.user
+            ).exists()
+        return None
+
+    def get_obtained_score(self, obj):
+        """获取学生获得的分数"""
+        request = self.context.get('request')
+        if request and request.user.role == 'student':
+            try:
+                submission = Submission.objects.get(
+                    assignment=obj,
+                    student=request.user
+                )
+                return submission.obtained_score
+            except Submission.DoesNotExist:
+                return None
+        return None
 
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     """作业详情序列化器 - 严格按照API规范"""
     questions = QuestionSerializer(many=True, read_only=True)
-    
+    is_completed = serializers.SerializerMethodField()
+    obtained_score = serializers.SerializerMethodField()
+
     class Meta:
         model = Assignment
         fields = [
-            'id', 'title', 'description', 'questions', 
-            'deadline', 'total_score', 'created_at'
+            'id', 'title', 'description', 'subject', 'questions',
+            'deadline', 'total_score', 'is_completed',
+            'obtained_score', 'created_at'
         ]
+
+    def get_is_completed(self, obj):
+        """获取学生是否已完成作业"""
+        request = self.context.get('request')
+        if request and request.user.role == 'student':
+            return Submission.objects.filter(
+                assignment=obj,
+                student=request.user
+            ).exists()
+        return None
+
+    def get_obtained_score(self, obj):
+        """获取学生获得的分数"""
+        request = self.context.get('request')
+        if request and request.user.role == 'student':
+            try:
+                submission = Submission.objects.get(
+                    assignment=obj,
+                    student=request.user
+                )
+                return submission.obtained_score
+            except Submission.DoesNotExist:
+                return None
+        return None
 
 
 class AnswerSubmissionSerializer(serializers.Serializer):

@@ -149,6 +149,7 @@
 {
     "title": "string",
     "description": "string",
+    "subject": "string",  // 科目名称，如"数学"、"Python编程"等
     "questions": [
         {
             "question_text": "string",
@@ -180,6 +181,8 @@
   - `page`: 页码（默认1）
   - `page_size`: 每页数量（默认10）
   - `status`: 作业状态（active|expired|draft）
+  - `subject`: 科目筛选
+  - `completion_status`: 完成状态筛选 (completed|pending|all) // 仅学生可用
 - **响应**:
 ```json
 {
@@ -191,9 +194,12 @@
                 "id": "uuid",
                 "title": "string",
                 "description": "string",
+                "subject": "string",
                 "deadline": "datetime",
                 "total_score": "integer",
-                "submission_count": "integer",
+                "submission_count": "integer", // 教师视角：提交人数
+                "is_completed": "boolean",     // 学生视角：是否已完成
+                "obtained_score": "integer",   // 学生视角：获得分数(已完成时)
                 "created_at": "datetime"
             }
         ],
@@ -219,6 +225,7 @@
         "id": "uuid",
         "title": "string",
         "description": "string",
+        "subject": "string",
         "questions": [
             {
                 "id": "uuid",
@@ -229,6 +236,8 @@
         ],
         "deadline": "datetime",
         "total_score": "integer",
+        "is_completed": "boolean",     // 学生视角：是否已完成
+        "obtained_score": "integer",   // 学生视角：获得分数(已完成时)
         "created_at": "datetime"
     }
 }

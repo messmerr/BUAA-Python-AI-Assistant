@@ -8,6 +8,7 @@ class Assignment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=100, verbose_name='作业标题')
     description = models.TextField(verbose_name='作业描述')
+    subject = models.CharField(max_length=50, verbose_name='科目')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

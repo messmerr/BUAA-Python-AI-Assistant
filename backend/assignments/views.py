@@ -73,11 +73,13 @@ def create_assignment(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def list_assignments(request):
-    """获取作业列表"""
+    """获取作业列表 - 支持科目和完成状态筛选"""
     # 获取查询参数
     page = int(request.GET.get('page', 1))
     page_size = int(request.GET.get('page_size', 10))
     status_filter = request.GET.get('status', None)
+    subject_filter = request.GET.get('subject', None)
+    completion_status = request.GET.get('completion_status', None)
 
     # 构建查询
     queryset = Assignment.objects.all()
@@ -86,7 +88,11 @@ def list_assignments(request):
     if request.user.role == 'teacher':
         queryset = queryset.filter(created_by=request.user)
 
-    # 状态过滤（简化实现）
+    # 科目过滤
+    if subject_filter:
+        queryset = queryset.filter(subject__icontains=subject_filter)
+
+    # 状态过滤（截止时间）
     if status_filter:
         from django.utils import timezone
         now = timezone.now()
@@ -95,6 +101,22 @@ def list_assignments(request):
         elif status_filter == 'expired':
             queryset = queryset.filter(deadline__lte=now)
 
+    # 完成状态过滤（仅学生）
+    if request.user.role == 'student' and completion_status:
+        if completion_status == 'completed':
+            # 只显示已完成的作业
+            completed_assignment_ids = Submission.objects.filter(
+                student=request.user
+            ).values_list('assignment_id', flat=True)
+            queryset = queryset.filter(id__in=completed_assignment_ids)
+        elif completion_status == 'pending':
+            # 只显示未完成的作业
+            completed_assignment_ids = Submission.objects.filter(
+                student=request.user
+            ).values_list('assignment_id', flat=True)
+            queryset = queryset.exclude(id__in=completed_assignment_ids)
+        # completion_status == 'all' 时不过滤
+
     # 分页
     total = queryset.count()
     start = (page - 1) * page_size
@@ -102,7 +124,11 @@ def list_assignments(request):
     assignments = queryset[start:end]
 
     # 序列化
-    serializer = AssignmentListSerializer(assignments, many=True)
+    serializer = AssignmentListSerializer(
+        assignments,
+        many=True,
+        context={'request': request}
+    )
 
     return Response({
         'code': 200,
@@ -139,7 +165,7 @@ def get_assignment_detail(request, assignment_id):
             'message': '权限不足'
         }, status=status.HTTP_403_FORBIDDEN)
 
-    serializer = AssignmentDetailSerializer(assignment)
+    serializer = AssignmentDetailSerializer(assignment, context={'request': request})
     return Response({
         'code': 200,
         'message': '获取成功',
