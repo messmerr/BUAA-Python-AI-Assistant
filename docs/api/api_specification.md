@@ -316,10 +316,54 @@
 }
 ```
 
+##### 2.2.3 获取作业提交列表
+- **URL**: `GET /assignments/{assignment_id}/submissions/list`
+- **描述**: 获取作业提交列表（教师查看所有提交，学生查看自己的提交）
+- **权限**: 教师查看所有，学生查看自己的
+- **查询参数**:
+  - `page` (可选): 页码，默认1
+  - `page_size` (可选): 每页数量，默认10
+  - `student` (可选): 学生用户名筛选（仅教师可用）
+- **响应**:
+```json
+{
+    "code": 200,
+    "message": "获取成功",
+    "data": {
+        "submissions": [
+            {
+                "id": "uuid",
+                "student_id": "uuid",
+                "student_name": "string",
+                "student_username": "string",
+                "status": "submitted|grading|graded",
+                "obtained_score": "integer",
+                "total_score": "integer",
+                "submitted_at": "datetime",
+                "graded_at": "datetime"
+            }
+        ],
+        "pagination": {
+            "page": "integer",
+            "page_size": "integer",
+            "total": "integer",
+            "total_pages": "integer"
+        },
+        "assignment_info": {
+            "id": "uuid",
+            "title": "string",
+            "total_score": "integer",
+            "deadline": "datetime",
+            "submission_count": "integer"
+        }
+    }
+}
+```
+
 ### 3. 智能答疑功能
 
 #### 3.1 提问
-- **URL**: `POST /qa/questions`
+- **URL**: `POST /qa/questions/`
 - **描述**: 学生提交问题，AI自动回答
 - **权限**: 仅学生
 - **请求体**:
@@ -343,9 +387,9 @@
 }
 ```
 
-#### 3.2 获取问答历史 (选做功能)
-- **URL**: `GET /qa/questions`
-- **描述**: 获取用户问答历史
+#### 3.2 获取问答历史
+- **URL**: `GET /qa/questions/list/`
+- **描述**: 获取用户问答历史（学生查看自己的，教师查看所有）
 - **查询参数**:
   - `page`: 页码
   - `page_size`: 每页数量
@@ -370,6 +414,31 @@
             "page_size": 10,
             "total": 50,
             "total_pages": 5
+        }
+    }
+}
+```
+
+#### 3.3 获取问题详情
+- **URL**: `GET /qa/questions/{question_id}/`
+- **描述**: 获取问题详情和AI回答
+- **权限**: 登录用户
+- **响应**:
+```json
+{
+    "code": 200,
+    "message": "获取成功",
+    "data": {
+        "id": "uuid",
+        "question_text": "string",
+        "subject": "string",
+        "context": "string",
+        "ai_answer": "string",
+        "created_at": "datetime",
+        "student": {
+            "id": "uuid",
+            "username": "string",
+            "real_name": "string"
         }
     }
 }
