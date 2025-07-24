@@ -30,7 +30,7 @@
             v-model="filters.subject"
             placeholder="输入科目名称"
             clearable
-            @change="fetchAssignments"
+            @change="handleFilterChange"
           />
         </el-form-item>
 
@@ -39,7 +39,7 @@
             v-model="filters.completion_status"
             placeholder="选择状态"
             clearable
-            @change="fetchAssignments"
+            @change="handleFilterChange"
           >
             <el-option label="未完成" value="pending" />
             <el-option label="已完成" value="completed" />
@@ -102,12 +102,25 @@
           </div>
         </div>
       </div>
+
+      <!-- 分页组件 -->
+      <div v-if="paginationData && paginationData.total > 0" class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="paginationData.total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, useAssignmentsStore } from '@/stores'
 import { formatDateTime } from '@/utils'
@@ -117,19 +130,48 @@ const router = useRouter()
 const authStore = useAuthStore()
 const assignmentsStore = useAssignmentsStore()
 
+// 分页参数
+const currentPage = ref(1)
+const pageSize = ref(10)
+
 // 筛选条件
 const filters = reactive({
   subject: '',
   completion_status: ''
 })
 
+// 分页数据
+const paginationData = computed(() => assignmentsStore.pagination)
+
 // 获取作业列表
 const fetchAssignments = async () => {
-  const params: any = {}
+  const params: any = {
+    page: currentPage.value,
+    page_size: pageSize.value
+  }
   if (filters.subject) params.subject = filters.subject
   if (filters.completion_status) params.completion_status = filters.completion_status
 
   await assignmentsStore.fetchAssignments(params)
+}
+
+// 分页大小改变
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
+  fetchAssignments()
+}
+
+// 当前页改变
+const handleCurrentChange = (page: number) => {
+  currentPage.value = page
+  fetchAssignments()
+}
+
+// 筛选条件改变
+const handleFilterChange = () => {
+  currentPage.value = 1
+  fetchAssignments()
 }
 
 // 创建作业（教师）
@@ -309,5 +351,25 @@ onMounted(() => {
 .created-time {
   font-size: 12px;
   color: #909399;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  padding: 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  .assignments-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination-wrapper {
+    padding: 16px;
+  }
 }
 </style>

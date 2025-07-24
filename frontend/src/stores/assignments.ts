@@ -12,6 +12,12 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   const currentSubmission = ref<Submission | null>(null)
   const loading = ref(false)
   const total = ref(0)
+  const pagination = ref({
+    page: 1,
+    page_size: 10,
+    total: 0,
+    total_pages: 0
+  })
 
   // 计算属性
   const assignmentCount = computed(() => assignments.value.length)
@@ -33,6 +39,16 @@ export const useAssignmentsStore = defineStore('assignments', () => {
       // 根据后端实际返回的数据格式解析
       assignments.value = response.data.assignments || []
       total.value = response.data.pagination?.total || 0
+
+      // 更新分页信息
+      if (response.data.pagination) {
+        pagination.value = {
+          page: response.data.pagination.page || 1,
+          page_size: response.data.pagination.page_size || 10,
+          total: response.data.pagination.total || 0,
+          total_pages: response.data.pagination.total_pages || 0
+        }
+      }
     } catch (error) {
       console.error('获取作业列表失败:', error)
       ElMessage.error('获取作业列表失败')
@@ -249,7 +265,8 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     currentSubmission,
     loading,
     total,
-    
+    pagination,
+
     // 计算属性
     assignmentCount,
     
