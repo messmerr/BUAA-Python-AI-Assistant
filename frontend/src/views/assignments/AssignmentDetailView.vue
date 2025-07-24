@@ -138,7 +138,6 @@ const startAssignment = () => {
 // 查看批改结果（学生）
 const viewResult = () => {
   const assignmentId = route.params.id as string
-  // 这里需要获取学生的提交ID，暂时使用作业ID
   router.push(`/assignments/${assignmentId}/result`)
 }
 

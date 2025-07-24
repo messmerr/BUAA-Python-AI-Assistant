@@ -174,7 +174,29 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     }
   }
 
-  // 获取作业批改结果
+  // 获取作业批改结果（新接口）
+  const fetchAssignmentResult = async (assignmentId: string, studentId?: string) => {
+    loading.value = true
+    try {
+      console.log('获取作业批改结果:', assignmentId, studentId)
+      const response = await assignmentsApi.getAssignmentResult(assignmentId, studentId)
+      console.log('批改结果响应:', response)
+      currentSubmission.value = response.data
+      return response.data
+    } catch (error) {
+      console.error('获取批改结果失败:', error)
+      if ((error as any).response?.status === 404) {
+        ElMessage.warning('作业尚未提交或不存在')
+      } else {
+        ElMessage.error('获取批改结果失败')
+      }
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 获取作业批改结果（旧接口，保持兼容）
   const fetchSubmissionResult = async (assignmentId: string, submissionId: string) => {
     loading.value = true
     try {
@@ -239,6 +261,7 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     deleteAssignment,
     submitAssignment,
     fetchSubmissions,
+    fetchAssignmentResult,
     fetchSubmissionResult,
     regradeSubmission,
     clearCurrentAssignment,

@@ -80,7 +80,15 @@ export const assignmentsApi = {
   },
 
   /**
-   * 获取作业批改结果
+   * 获取作业批改结果（新接口）
+   */
+  getAssignmentResult(assignmentId: string, studentId?: string): Promise<ApiResponse<Submission>> {
+    const params = studentId ? { student_id: studentId } : {}
+    return request.get(`/assignments/${assignmentId}/result/`, { params })
+  },
+
+  /**
+   * 获取作业批改结果（旧接口，保持兼容）
    */
   getSubmissionResult(assignmentId: string, submissionId: string): Promise<ApiResponse<Submission>> {
     return request.get(`/assignments/${assignmentId}/submissions/${submissionId}/`)
