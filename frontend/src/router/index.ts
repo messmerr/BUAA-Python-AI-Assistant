@@ -35,25 +35,24 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/assignments/AssignmentsView.vue'),
         meta: { title: '作业管理', icon: 'Document' }
       },
-      // 暂时注释掉未创建的页面
-      // {
-      //   path: '/assignments/create',
-      //   name: 'CreateAssignment',
-      //   component: () => import('@/views/assignments/CreateAssignmentView.vue'),
-      //   meta: { title: '创建作业', roles: ['teacher'] }
-      // },
-      // {
-      //   path: '/assignments/:id',
-      //   name: 'AssignmentDetail',
-      //   component: () => import('@/views/assignments/AssignmentDetailView.vue'),
-      //   meta: { title: '作业详情' }
-      // },
-      // {
-      //   path: '/assignments/:id/submit',
-      //   name: 'SubmitAssignment',
-      //   component: () => import('@/views/assignments/SubmitAssignmentView.vue'),
-      //   meta: { title: '提交作业', roles: ['student'] }
-      // },
+      {
+        path: '/assignments/:id',
+        name: 'AssignmentDetail',
+        component: () => import('@/views/assignments/AssignmentDetailView.vue'),
+        meta: { title: '作业详情' }
+      },
+      {
+        path: '/assignments/create',
+        name: 'CreateAssignment',
+        component: () => import('@/views/assignments/CreateAssignmentView.vue'),
+        meta: { title: '创建作业', roles: ['teacher'] }
+      },
+      {
+        path: '/assignments/:id/submit',
+        name: 'SubmitAssignment',
+        component: () => import('@/views/assignments/SubmitAssignmentView.vue'),
+        meta: { title: '提交作业', roles: ['student'] }
+      },
       {
         path: '/qa',
         name: 'QA',

@@ -45,12 +45,23 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   const fetchAssignmentDetail = async (assignmentId: string) => {
     loading.value = true
     try {
+      console.log('Store: 开始获取作业详情，ID:', assignmentId)
       const response = await assignmentsApi.getAssignmentDetail(assignmentId)
-      currentAssignment.value = response.data
-      return response.data
+      console.log('Store: API响应:', response)
+
+      // 根据后端实际返回的数据格式解析
+      if (response.data) {
+        currentAssignment.value = response.data
+        console.log('Store: 作业详情设置成功:', currentAssignment.value)
+        return response.data
+      } else {
+        console.error('Store: 响应数据为空')
+        throw new Error('响应数据为空')
+      }
     } catch (error) {
       console.error('获取作业详情失败:', error)
       ElMessage.error('获取作业详情失败')
+      currentAssignment.value = null
       throw error
     } finally {
       loading.value = false
@@ -125,11 +136,18 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   const submitAssignment = async (assignmentId: string, data: SubmitAssignmentRequest) => {
     loading.value = true
     try {
+      console.log('Store: 开始提交作业')
+      console.log('Store: 作业ID:', assignmentId)
+      console.log('Store: 提交数据:', data)
+
       const response = await assignmentsApi.submitAssignment(assignmentId, data)
+      console.log('Store: 提交响应:', response)
+
       ElMessage.success('作业提交成功')
       return response.data
-    } catch (error) {
+    } catch (error: any) {
       console.error('提交作业失败:', error)
+      console.error('错误详情:', error.response?.data)
       throw error
     } finally {
       loading.value = false

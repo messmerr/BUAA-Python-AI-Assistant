@@ -59,6 +59,7 @@ export interface Assignment {
   submission_count?: number
   is_completed?: boolean | null  // 学生视角：是否已完成
   obtained_score?: number | null // 学生视角：获得分数
+  questions?: Question[]         // 作业详情中包含的题目列表
 }
 
 export interface Question {

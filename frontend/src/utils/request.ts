@@ -7,7 +7,7 @@ const BASE_URL = 'http://localhost:8000/api/v1'
 // 创建axios实例
 const request: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 增加到60秒，因为AI批改需要较长时间
   headers: {
     'Content-Type': 'application/json',
   },
