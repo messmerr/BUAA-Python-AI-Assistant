@@ -48,6 +48,14 @@ cp .env.example .env
 3. 复制到 `.env` 文件中
 
 #### 2.4 数据库迁移
+
+清空数据库（可选）
+```bash
+del db.sqlite3 
+```
+
+数据库迁移
+
 ```bash
 python manage.py makemigrations
 python manage.py migrate
