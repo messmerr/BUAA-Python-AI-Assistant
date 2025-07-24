@@ -42,7 +42,7 @@
 | GET | `/assignments/list/` | 获取作业列表 | 登录用户 | ✅ |
 | GET | `/assignments/{id}/` | 获取作业详情 | 登录用户 | ✅ |
 | POST | `/assignments/{id}/submissions/` | 提交作业 | 学生 | ✅ |
-| GET | `/assignments/{id}/submissions/{sub_id}/` | 获取批改结果 | 学生/教师 | ✅ |
+| GET | `/assignments/{id}/result/` | 获取批改结果 | 学生/教师 | ✅ |
 
 ### 智能答疑 ✅ 已实现
 | 方法 | 路径 | 描述 | 权限 | 状态 |

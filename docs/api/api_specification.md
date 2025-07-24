@@ -274,8 +274,11 @@
 ```
 
 ##### 2.2.2 获取作业批改结果
-- **URL**: `GET /assignments/{assignment_id}/submissions/{submission_id}`
-- **描述**: 获取作业批改结果
+- **URL**: `GET /assignments/{assignment_id}/result`
+- **描述**: 获取作业批改结果（学生查看自己的结果）
+- **权限**: 学生查看自己的，教师查看指定学生的
+- **查询参数**:
+  - `student_id` (可选): 教师查看指定学生的结果
 - **响应**:
 ```json
 {
@@ -288,6 +291,7 @@
         "graded_at": "datetime",
         "total_score": "integer",
         "obtained_score": "integer",
+        "status": "graded",
         "answers": [
             {
                 "question_id": "uuid",
@@ -301,6 +305,14 @@
         ],
         "overall_feedback": "string"
     }
+}
+```
+
+**错误响应**:
+```json
+{
+    "code": 404,
+    "message": "作业尚未提交或不存在"
 }
 ```
 

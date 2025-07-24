@@ -4,7 +4,11 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.openapi import OpenApiTypes
+from django.contrib.auth import get_user_model
 from .models import Assignment, Submission
+
+User = get_user_model()
 from .serializers import (
     AssignmentCreateSerializer,
     AssignmentListSerializer,
@@ -256,6 +260,75 @@ def get_submission_result(request, assignment_id, submission_id):
                 'message': '权限不足'
             }, status=status.HTTP_403_FORBIDDEN)
 
+    serializer = SubmissionDetailSerializer(submission)
+    return Response({
+        'code': 200,
+        'message': '获取成功',
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name='student_id',
+            type=OpenApiTypes.UUID,
+            location=OpenApiParameter.QUERY,
+            description='教师查看指定学生的结果（可选）'
+        )
+    ],
+    responses={
+        200: SubmissionDetailSerializer,
+        403: OpenApiResponse(description="权限不足"),
+        404: OpenApiResponse(description="作业尚未提交或不存在"),
+    },
+    description="获取作业批改结果（通过作业ID直接获取）"
+)
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_assignment_result(request, assignment_id):
+    """获取作业批改结果 - 通过作业ID直接获取"""
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    # 确定要查询的学生
+    if request.user.role == 'student':
+        # 学生只能查看自己的结果
+        target_student = request.user
+    elif request.user.role == 'teacher':
+        # 教师可以查看指定学生的结果
+        if assignment.created_by != request.user:
+            return Response({
+                'code': 403,
+                'message': '权限不足：您只能查看自己创建的作业的提交结果'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        student_id = request.query_params.get('student_id')
+        if student_id:
+            target_student = get_object_or_404(User, id=student_id, role='student')
+        else:
+            return Response({
+                'code': 400,
+                'message': '教师查看结果时必须指定student_id参数'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({
+            'code': 403,
+            'message': '权限不足'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    # 查找提交记录
+    try:
+        submission = Submission.objects.get(
+            assignment=assignment,
+            student=target_student
+        )
+    except Submission.DoesNotExist:
+        return Response({
+            'code': 404,
+            'message': '作业尚未提交或不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    # 序列化并返回结果
     serializer = SubmissionDetailSerializer(submission)
     return Response({
         'code': 200,
