@@ -26,9 +26,13 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   }) => {
     loading.value = true
     try {
+      console.log('获取作业列表，参数:', params)
       const response = await assignmentsApi.getAssignments(params)
-      assignments.value = response.data.results
-      total.value = response.data.count
+      console.log('作业列表响应:', response)
+
+      // 根据后端实际返回的数据格式解析
+      assignments.value = response.data.assignments || []
+      total.value = response.data.pagination?.total || 0
     } catch (error) {
       console.error('获取作业列表失败:', error)
       ElMessage.error('获取作业列表失败')

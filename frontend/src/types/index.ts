@@ -57,6 +57,8 @@ export interface Assignment {
   created_at: string
   updated_at: string
   submission_count?: number
+  is_completed?: boolean | null  // 学生视角：是否已完成
+  obtained_score?: number | null // 学生视角：获得分数
 }
 
 export interface Question {

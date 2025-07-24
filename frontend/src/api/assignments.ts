@@ -28,7 +28,15 @@ export const assignmentsApi = {
     subject?: string
     status?: string
     completion_status?: string
-  }): Promise<ApiResponse<PaginatedResponse<Assignment>>> {
+  }): Promise<ApiResponse<{
+    assignments: Assignment[]
+    pagination: {
+      page: number
+      page_size: number
+      total: number
+      total_pages: number
+    }
+  }>> {
     return request.get('/assignments/list/', { params })
   },
 
