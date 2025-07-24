@@ -85,6 +85,7 @@ def test_create_assignment(teacher_token):
     assignment_data = {
         "title": "Python基础测试",
         "description": "测试Python基础知识",
+        "subject": "Python编程",
         "questions": [
             {
                 "question_text": "什么是Python？",
