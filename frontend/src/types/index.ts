@@ -125,6 +125,7 @@ export interface QAQuestion {
 export interface CreateQuestionRequest {
   question_text: string
   subject: string
+  context?: string
 }
 
 // 学习报告相关类型

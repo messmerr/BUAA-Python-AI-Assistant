@@ -23,8 +23,8 @@ export const useQAStore = defineStore('qa', () => {
     loading.value = true
     try {
       const response = await qaApi.getQuestions(params)
-      questions.value = response.data.results
-      total.value = response.data.count
+      questions.value = response.data.questions
+      total.value = response.data.pagination.total
     } catch (error) {
       console.error('获取问题列表失败:', error)
       ElMessage.error('获取问题列表失败')

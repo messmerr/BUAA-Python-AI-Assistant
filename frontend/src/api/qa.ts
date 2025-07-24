@@ -1,9 +1,8 @@
 import request from '@/utils/request'
-import type { 
-  QAQuestion, 
-  CreateQuestionRequest, 
-  ApiResponse,
-  PaginatedResponse 
+import type {
+  QAQuestion,
+  CreateQuestionRequest,
+  ApiResponse
 } from '@/types'
 
 /**
@@ -31,8 +30,16 @@ export const qaApi = {
     page?: number
     page_size?: number
     subject?: string
-  }): Promise<ApiResponse<PaginatedResponse<QAQuestion>>> {
-    return request.get('/qa/questions/', { params })
+  }): Promise<ApiResponse<{
+    questions: QAQuestion[]
+    pagination: {
+      page: number
+      page_size: number
+      total: number
+      total_pages: number
+    }
+  }>> {
+    return request.get('/qa/questions/list/', { params })
   },
 
   /**
