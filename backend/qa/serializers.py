@@ -1,8 +1,89 @@
 from rest_framework import serializers
-from .models import QAQuestion, QAAnswer
+from .models import QASession, QAMessage, QAQuestion, QAAnswer
 from ai_services import ask_gemini
 
 
+# 新的会话和消息序列化器
+class QAMessageSerializer(serializers.ModelSerializer):
+    """消息序列化器"""
+    class Meta:
+        model = QAMessage
+        fields = ['id', 'role', 'content', 'created_at']
+
+
+class QASessionListSerializer(serializers.ModelSerializer):
+    """会话列表序列化器"""
+    last_message = serializers.SerializerMethodField()
+    message_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QASession
+        fields = ['id', 'subject', 'created_at', 'updated_at', 'last_message', 'message_count']
+
+    def get_last_message(self, obj):
+        """获取最后一条消息"""
+        last_message = obj.messages.last()
+        if last_message:
+            return {
+                'role': last_message.role,
+                'content': last_message.content[:100] + ('...' if len(last_message.content) > 100 else ''),
+                'created_at': last_message.created_at
+            }
+        return None
+
+    def get_message_count(self, obj):
+        """获取消息数量"""
+        return obj.messages.count()
+
+
+class QASessionDetailSerializer(serializers.ModelSerializer):
+    """会话详情序列化器"""
+    messages = QAMessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = QASession
+        fields = ['id', 'subject', 'created_at', 'updated_at', 'messages']
+
+
+class ChatMessageCreateSerializer(serializers.Serializer):
+    """聊天消息创建序列化器"""
+    session_id = serializers.UUIDField(required=False, allow_null=True)
+    message = serializers.CharField(max_length=2000)
+    subject = serializers.CharField(max_length=100, required=False, default="通用")
+
+    def create_or_get_session(self, student, subject="通用"):
+        """创建或获取会话"""
+        session_id = self.validated_data.get('session_id')
+
+        if session_id:
+            # 获取现有会话
+            try:
+                session = QASession.objects.get(id=session_id, student=student)
+                return session
+            except QASession.DoesNotExist:
+                raise serializers.ValidationError("会话不存在")
+        else:
+            # 创建新会话
+            session = QASession.objects.create(
+                student=student,
+                subject=subject
+            )
+            return session
+
+    def save_message(self, session, role, content):
+        """保存消息"""
+        return QAMessage.objects.create(
+            session=session,
+            role=role,
+            content=content
+        )
+
+    def get_context_messages(self, session, limit=10):
+        """获取上下文消息"""
+        return session.messages.order_by('-created_at')[:limit][::-1]
+
+
+# 保留旧的序列化器以兼容现有API
 class QAQuestionCreateSerializer(serializers.ModelSerializer):
     """问题创建序列化器 - 严格按照API规范"""
     ai_answer = serializers.CharField(read_only=True)

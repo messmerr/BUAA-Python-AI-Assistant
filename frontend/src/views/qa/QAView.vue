@@ -220,6 +220,9 @@ import { ElMessage } from 'element-plus'
 
 const qaStore = useQAStore()
 
+// 当前会话ID
+const currentSessionId = ref<string | null>(null)
+
 // 消息列表
 const messages = ref<Array<{
   id: string
@@ -286,12 +289,17 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
-    // 调用API
-    const response = await qaStore.submitQuestion({
-      question_text: userMessage,
-      subject: currentSubject.value,
-      context: ''
+    // 调用新的聊天API
+    const response = await qaStore.sendChatMessage({
+      session_id: currentSessionId.value || undefined,
+      message: userMessage,
+      subject: currentSubject.value
     })
+
+    // 更新会话ID
+    if (!currentSessionId.value) {
+      currentSessionId.value = response.session_id
+    }
 
     // 更新AI消息
     const aiMessageIndex = messages.value.findIndex(m => m.id === aiMessageId)
@@ -299,8 +307,8 @@ const sendMessage = async () => {
       messages.value[aiMessageIndex] = {
         id: aiMessageId,
         type: 'ai',
-        content: response.ai_answer,
-        timestamp: new Date(),
+        content: response.ai_response,
+        timestamp: new Date(response.created_at),
         loading: false
       }
     }
@@ -336,6 +344,7 @@ const handleShiftEnter = () => {
 // 清空对话
 const clearChat = () => {
   messages.value = []
+  currentSessionId.value = null
 }
 
 // 切换历史记录面板
@@ -346,7 +355,7 @@ const toggleHistory = async () => {
   }
 }
 
-// 获取历史问题列表
+// 获取历史会话列表
 const fetchHistoryQuestions = async () => {
   try {
     const params = {
@@ -354,48 +363,54 @@ const fetchHistoryQuestions = async () => {
       page_size: historyPageSize.value,
       subject: historySubjectFilter.value || undefined
     }
-    const response = await qaStore.fetchQuestions(params)
-    historyQuestions.value = qaStore.questions
-    historyPagination.value = {
-      page: historyPage.value,
-      page_size: historyPageSize.value,
-      total: qaStore.total,
-      total_pages: Math.ceil(qaStore.total / historyPageSize.value)
-    }
+    const response = await qaStore.fetchSessions(params)
+    // 转换会话数据为历史问题格式以兼容现有UI
+    historyQuestions.value = response.sessions.map(session => ({
+      id: session.id,
+      subject: session.subject,
+      created_at: session.updated_at,
+      question_text: session.last_message?.content || '新对话',
+      ai_answer: session.last_message?.role === 'ai' ? session.last_message.content : '等待回复...'
+    }))
+    historyPagination.value = response.pagination
   } catch (error) {
     console.error('获取历史记录失败:', error)
   }
 }
 
-// 加载历史问题到当前对话
-const loadHistoryQuestion = (question: any) => {
-  // 清空当前对话
-  messages.value = []
+// 加载历史会话到当前对话
+const loadHistoryQuestion = async (session: any) => {
+  try {
+    // 获取会话详情
+    const sessionDetail = await qaStore.fetchSessionDetail(session.id)
 
-  // 添加历史问题和回答到当前对话
-  messages.value.push({
-    id: question.id + '_user',
-    type: 'user',
-    content: question.question_text,
-    timestamp: new Date(question.created_at),
-    subject: question.subject
-  })
+    // 设置当前会话ID
+    currentSessionId.value = session.id
 
-  messages.value.push({
-    id: question.id + '_ai',
-    type: 'ai',
-    content: question.ai_answer,
-    timestamp: new Date(question.created_at),
-    loading: false
-  })
+    // 清空当前对话
+    messages.value = []
 
-  // 关闭历史记录面板
-  showHistory.value = false
+    // 加载会话中的所有消息
+    sessionDetail.messages.forEach((message, index) => {
+      messages.value.push({
+        id: message.id,
+        type: message.role,
+        content: message.content,
+        timestamp: new Date(message.created_at),
+        loading: false
+      })
+    })
 
-  // 滚动到底部
-  nextTick(() => {
+    // 关闭历史记录面板
+    showHistory.value = false
+
+    // 滚动到底部
+    await nextTick()
     scrollToBottom()
-  })
+
+  } catch (error) {
+    console.error('加载历史会话失败:', error)
+  }
 }
 
 // 历史记录分页处理

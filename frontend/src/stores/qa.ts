@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { qaApi } from '@/api'
+import { qaApi, type ChatSession, type ChatMessage, type ChatMessageRequest } from '@/api'
 import type { QAQuestion, CreateQuestionRequest } from '@/types'
 import { ElMessage } from 'element-plus'
 
@@ -8,11 +8,15 @@ export const useQAStore = defineStore('qa', () => {
   // 状态
   const questions = ref<QAQuestion[]>([])
   const currentQuestion = ref<QAQuestion | null>(null)
+  const sessions = ref<ChatSession[]>([])
+  const currentSession = ref<ChatSession | null>(null)
+  const currentSessionMessages = ref<ChatMessage[]>([])
   const loading = ref(false)
   const total = ref(0)
 
   // 计算属性
   const questionCount = computed(() => questions.value.length)
+  const sessionCount = computed(() => sessions.value.length)
 
   // 获取问题列表
   const fetchQuestions = async (params?: {
@@ -115,19 +119,79 @@ export const useQAStore = defineStore('qa', () => {
       .slice(0, 10)
   })
 
+  // 新的聊天方法
+  const sendChatMessage = async (data: ChatMessageRequest) => {
+    loading.value = true
+    try {
+      const response = await qaApi.sendChatMessage(data)
+      return response.data
+    } catch (error) {
+      console.error('发送消息失败:', error)
+      ElMessage.error('发送消息失败')
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const fetchSessions = async (params?: {
+    page?: number
+    page_size?: number
+    subject?: string
+  }) => {
+    loading.value = true
+    try {
+      const response = await qaApi.getSessions(params)
+      sessions.value = response.data.sessions
+      total.value = response.data.pagination.total
+      return response.data
+    } catch (error) {
+      console.error('获取会话列表失败:', error)
+      ElMessage.error('获取会话列表失败')
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const fetchSessionDetail = async (sessionId: string) => {
+    loading.value = true
+    try {
+      const response = await qaApi.getSessionDetail(sessionId)
+      currentSession.value = response.data
+      currentSessionMessages.value = response.data.messages
+      return response.data
+    } catch (error) {
+      console.error('获取会话详情失败:', error)
+      ElMessage.error('获取会话详情失败')
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // 状态
     questions,
     currentQuestion,
+    sessions,
+    currentSession,
+    currentSessionMessages,
     loading,
     total,
-    
+
     // 计算属性
     questionCount,
+    sessionCount,
     getQuestionsBySubject,
     getRecentQuestions,
-    
-    // 方法
+
+    // 新的聊天方法
+    sendChatMessage,
+    fetchSessions,
+    fetchSessionDetail,
+
+    // 旧的方法（保持兼容）
     fetchQuestions,
     fetchQuestionDetail,
     submitQuestion,
