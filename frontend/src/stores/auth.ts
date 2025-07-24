@@ -58,11 +58,27 @@ export const useAuthStore = defineStore('auth', () => {
   const register = async (registerData: RegisterRequest) => {
     loading.value = true
     try {
-      await authApi.register(registerData)
+      console.log('发送注册请求:', registerData)
+      const response = await authApi.register(registerData)
+      console.log('注册响应:', response)
       ElMessage.success('注册成功，请登录')
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error('注册失败:', error)
+
+      // 显示具体的错误信息
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors
+        const errorMessages = Object.values(errors).flat().join(', ')
+        ElMessage.error(`注册失败: ${errorMessages}`)
+      } else if (error.response?.data?.message) {
+        ElMessage.error(`注册失败: ${error.response.data.message}`)
+      } else if (error.message) {
+        ElMessage.error(`注册失败: ${error.message}`)
+      } else {
+        ElMessage.error('注册失败，请检查网络连接')
+      }
+
       return false
     } finally {
       loading.value = false
