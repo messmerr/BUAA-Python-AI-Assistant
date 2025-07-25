@@ -12,7 +12,7 @@
 - ✅ **用户认证** - 5/5 接口已实现
 - ✅ **作业管理** - 7/7 接口已实现
 - ✅ **智能答疑** - 6/6 接口已实现（升级为多轮对话）
-- ❌ **学习报告** - 0/1 接口已实现
+- ❌ **学习报告** - 0/3 接口已实现
 
 ### 选做功能 (0/6 模块)
 - ❌ **图片识别** - 0/1 接口已实现
@@ -20,9 +20,9 @@
 - ❌ **资源推荐** - 0/3 接口已实现
 - ❌ **数据分析** - 0/3 接口已实现
 - ❌ **实时互动** - 0/3 接口已实现
-- ❌ **通用接口** - 0/2 接口已实现
+- ❌ **通用���口** - 0/2 接口已实现
 
-**总体进度**: 19/28 接口已实现 (68%)
+**总体进度**: 19/30 接口已实现 (63%)
 
 ## 必做功能接口
 
@@ -60,6 +60,8 @@
 | 方法 | 路径 | 描述 | 权限 | 状态 |
 |------|------|------|------|------|
 | POST | `/reports/generate/` | 生成学习报告 | 学生/教师 | ❌ |
+| GET | `/reports/list/` | 获取报告列表 | 学生/教师 | ❌ |
+| GET | `/reports/{id}/` | 获取报告详情 | 学生/教师 | ❌ |
 
 ## 选做功能接口
 
@@ -242,15 +244,26 @@ curl -X POST http://localhost:8000/api/v1/assignments/{assignment_id}/submission
 
 ### 生成学习报告 ❌
 ```bash
+# 教师为学生生成报告
+curl -X POST http://localhost:8000/api/v1/reports/generate/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <teacher_token>" \
+  -d '{
+    "student_id": "student-uuid",
+    "period": "month",
+    "subjects": ["Python编程"]
+  }'
+
+# 学生为自己生成报告
 curl -X POST http://localhost:8000/api/v1/reports/generate/ \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <student_token>" \
   -d '{
-    "period": "month",
-    "subjects": ["Python编程", "数据结构"]
+    "period": "all"
   }'
 ```
 -->
+
 
 ## 响应格式示例
 

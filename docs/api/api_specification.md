@@ -535,63 +535,46 @@
 }
 ```
 
-### 4. 学习报告生成
+### 4. 学习报告功能
+
+学习报告模块负责根据学生的学习数据（作业、问答等）生成综合性评估报告。
 
 #### 4.1 生成学习报告
-- **URL**: `POST /reports/generate`
-- **描述**: 生成学生学习报告
-- **权限**: 学生本人或教师
+- **URL**: `POST /reports/generate/`
+- **描述**: 按需生成一份新的学生学习报告。后端将收集指定范围内的学习数据，调用AI大模型生成报告内容，并将结果持久化保存。
+- **权���**: 学生（仅自己）, 教师（可为指定学生）
 - **请求体**:
 ```json
 {
-    "student_id": "uuid", // 教师查看其他学生时需要
-    "period": "week|month|semester", // 报告周期
-    "subjects": ["string"] // 可选，指定学科
+    "student_id": "uuid", // 教师为学生生成报告时必填
+    "period": "week|month|semester|all", // 报告统计周期, 'all'表示全部
+    "subjects": ["string"] // 可选，指定报告覆盖的学科范围，为空则代表全部学科
 }
 ```
-- **响应**:
+- **响应 (201 Created)**:
 ```json
 {
-    "code": 200,
-    "message": "报告生成成功",
+    "code": 201,
+    "message": "学习报告生成成功",
     "data": {
-        "report_id": "uuid",
-        "student_name": "string",
-        "period": "string",
+        "id": "uuid",
+        "student_id": "uuid",
         "generated_at": "datetime",
-        "summary": {
-            "total_assignments": "integer",
-            "completed_assignments": "integer",
-            "average_score": "float",
-            "total_questions": "integer"
-        },
-        "subject_performance": [
-            {
-                "subject": "string",
-                "assignment_count": "integer",
-                "average_score": "float",
-                "improvement_trend": "up|down|stable"
-            }
-        ],
-        "knowledge_points": [
-            {
-                "topic": "string",
-                "mastery_level": "excellent|good|fair|poor",
-                "practice_count": "integer"
-            }
-        ],
-        "recommendations": ["string"]
+        "period": "string",
+        "subjects": ["string"],
+        "content": "string" 
     }
 }
 ```
 
-#### 4.2 获取历史报告 (选做功能)
-- **URL**: `GET /reports`
-- **描述**: 获取学习报告列表
+#### 4.2 获取学习报告列表
+- **URL**: `GET /reports/list/`
+- **描述**: 获取历史学习报告列表（不含报告正文）。
+- **权限**: 学生（仅自己）, 教师（可查看学生）
 - **查询参数**:
-  - `student_id`: 学生ID（教师查看时需要）
-  - `page`: 页码
-  - `page_size`: 每页数量
+  - `student_id` (可选): 教师按学生ID筛选
+  - `page` (可选): 页码
+  - `page_size` (可选): 每页数量
 - **响应**:
 ```json
 {
@@ -601,10 +584,11 @@
         "reports": [
             {
                 "id": "uuid",
-                "period": "string",
+                "student_id": "uuid",
+                "student_name": "string",
                 "generated_at": "datetime",
-                "average_score": "float",
-                "total_assignments": "integer"
+                "period": "string",
+                "subjects": ["string"]
             }
         ],
         "pagination": {
@@ -613,6 +597,27 @@
             "total": 20,
             "total_pages": 2
         }
+    }
+}
+```
+
+#### 4.3 获取学习报告详情
+- **URL**: `GET /reports/{report_id}/`
+- **描述**: 获取指定ID的学习报告的完整内容。
+- **权限**: 报告所有者或教师
+- **响应**:
+```json
+{
+    "code": 200,
+    "message": "获取成功",
+    "data": {
+        "id": "uuid",
+        "student_id": "uuid",
+        "student_name": "string",
+        "generated_at": "datetime",
+        "period": "string",
+        "subjects": ["string"],
+        "content": "string" 
     }
 }
 ```
