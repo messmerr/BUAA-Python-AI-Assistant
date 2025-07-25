@@ -96,24 +96,14 @@ def login_view(request):
 
 
 @extend_schema(
+    methods=['GET'],
     responses={
         200: UserSerializer,
     },
     description="获取当前用户信息"
 )
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def profile_view(request):
-    """获取用户信息"""
-    serializer = UserSerializer(request.user)
-    return Response({
-        'code': 200,
-        'message': '获取成功',
-        'data': serializer.data
-    }, status=status.HTTP_200_OK)
-
-
 @extend_schema(
+    methods=['PUT'],
     request=UserUpdateSerializer,
     responses={
         200: UserSerializer,
@@ -121,25 +111,36 @@ def profile_view(request):
     },
     description="更新用户信息"
 )
-@api_view(['PUT'])
+@api_view(['GET', 'PUT'])
 @permission_classes([permissions.IsAuthenticated])
-def update_profile_view(request):
-    """更新用户信息"""
-    serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
-    if serializer.is_valid():
-        user = serializer.save()
-        response_serializer = UserSerializer(user)
+def profile_view(request):
+    """获取/更新用户信息"""
+    if request.method == 'GET':
+        # 获取用户信息
+        serializer = UserSerializer(request.user)
         return Response({
             'code': 200,
-            'message': '更新成功',
-            'data': response_serializer.data
+            'message': '获取成功',
+            'data': serializer.data
         }, status=status.HTTP_200_OK)
 
-    return Response({
-        'code': 400,
-        'message': '更新失败',
-        'errors': serializer.errors
-    }, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'PUT':
+        # 更新用户信息
+        serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            user = serializer.save()
+            response_serializer = UserSerializer(user)
+            return Response({
+                'code': 200,
+                'message': '更新成功',
+                'data': response_serializer.data
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            'code': 400,
+            'message': '更新失败',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CustomTokenRefreshView(TokenRefreshView):

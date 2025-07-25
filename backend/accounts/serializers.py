@@ -80,15 +80,48 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """用户信息更新序列化器 - 严格按照API规范"""
+    """用户信息更新序列化器"""
+    current_password = serializers.CharField(write_only=True, required=False)
+    new_password = serializers.CharField(write_only=True, required=False, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ['email', 'real_name']  # API规范中只允许更新这两个字段
+        fields = ['email', 'real_name', 'current_password', 'new_password', 'confirm_password']
+
+    def validate(self, attrs):
+        """验证更新数据"""
+        new_password = attrs.get('new_password')
+        confirm_password = attrs.get('confirm_password')
+        current_password = attrs.get('current_password')
+
+        # 如果要修改密码，需要验证当前密码和确认密码
+        if new_password:
+            if not current_password:
+                raise serializers.ValidationError("修改密码时必须提供当前密码")
+
+            if not self.instance.check_password(current_password):
+                raise serializers.ValidationError("当前密码错误")
+
+            if new_password != confirm_password:
+                raise serializers.ValidationError("新密码和确认密码不匹配")
+
+        return attrs
 
     def update(self, instance, validated_data):
         """更新用户信息"""
+        # 移除密码相关字段，单独处理
+        new_password = validated_data.pop('new_password', None)
+        validated_data.pop('current_password', None)
+        validated_data.pop('confirm_password', None)
+
+        # 更新基本信息
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        # 更新密码
+        if new_password:
+            instance.set_password(new_password)
+
         instance.save()
         return instance

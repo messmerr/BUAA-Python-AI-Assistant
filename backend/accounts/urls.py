@@ -11,5 +11,4 @@ urlpatterns = [
     
     # 用户信息
     path('profile/', views.profile_view, name='profile'),
-    path('profile/update/', views.update_profile_view, name='update_profile'),
 ]
