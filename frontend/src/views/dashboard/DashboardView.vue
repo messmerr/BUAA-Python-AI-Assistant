@@ -23,6 +23,12 @@
           <p>AI助手为您答疑解惑</p>
         </div>
 
+        <div class="action-card" @click="$router.push('/reports')">
+          <el-icon class="card-icon" size="32"><Document /></el-icon>
+          <h4>学习报告</h4>
+          <p>查看个人学习分析报告</p>
+        </div>
+
         <div class="action-card" @click="$router.push('/profile')">
           <el-icon class="card-icon" size="32"><User /></el-icon>
           <h4>个人中心</h4>

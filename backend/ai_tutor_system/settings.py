@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     "accounts",
     "assignments",
     "qa",
-    # "reports",
+    "reports",
 ]
 
 MIDDLEWARE = [

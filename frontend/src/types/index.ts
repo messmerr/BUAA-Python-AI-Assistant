@@ -131,10 +131,27 @@ export interface CreateQuestionRequest {
 // 学习报告相关类型
 export interface LearningReport {
   id: string
-  student: string
-  report_type: string
-  content: any
-  generated_at: string
+  student_name: string
+  student_id_number: string
+  generated_by_name: string
+  period: 'week' | 'month' | 'semester' | 'all'
+  period_display: string
+  subjects: string[]
+  status: 'generating' | 'completed' | 'failed'
+  status_display: string
+  total_assignments: number
+  completed_assignments: number
+  average_score: number
+  total_questions: number
+  report_content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface GenerateReportRequest {
+  student_id?: string
+  period: 'week' | 'month' | 'semester' | 'all'
+  subjects?: string[]
 }
 
 // 通用工具类型

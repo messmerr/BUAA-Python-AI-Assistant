@@ -78,6 +78,18 @@ const routes: RouteRecordRaw[] = [
       //   meta: { title: '问题详情' }
       // },
       {
+        path: '/reports',
+        name: 'Reports',
+        component: () => import('@/views/reports/ReportsView.vue'),
+        meta: { title: '学习报告', icon: 'Document' }
+      },
+      {
+        path: '/reports/:id',
+        name: 'ReportDetail',
+        component: () => import('@/views/reports/ReportDetailView.vue'),
+        meta: { title: '报告详情' }
+      },
+      {
         path: '/profile',
         name: 'Profile',
         component: () => import('@/views/profile/ProfileView.vue'),

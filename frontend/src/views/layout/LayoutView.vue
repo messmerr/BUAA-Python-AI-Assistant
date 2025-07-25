@@ -26,6 +26,11 @@
           <span>智能答疑</span>
         </el-menu-item>
 
+        <el-menu-item index="/reports">
+          <el-icon><Document /></el-icon>
+          <span>学习报告</span>
+        </el-menu-item>
+
         <el-menu-item index="/profile">
           <el-icon><User /></el-icon>
           <span>个人中心</span>
@@ -88,6 +93,7 @@ const getPageTitle = () => {
     '/dashboard': '首页',
     '/assignments': '作业管理',
     '/qa': '智能答疑',
+    '/reports': '学习报告',
     '/profile': '个人中心'
   }
   return titleMap[route.path] || '首页'
