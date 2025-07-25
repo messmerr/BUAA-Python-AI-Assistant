@@ -138,7 +138,7 @@
                 <span></span>
               </div>
               <div v-else class="ai-answer">
-                <pre>{{ message.content }}</pre>
+                <MarkdownRenderer :content="message.content" />
               </div>
               <div v-if="!message.loading" class="message-meta">
                 <span class="time">{{ formatTime(message.timestamp) }}</span>
@@ -217,6 +217,7 @@ import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { useQAStore } from '@/stores'
 import { ChatDotRound, User, Delete, CopyDocument, Promotion, Clock, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
 const qaStore = useQAStore()
 
@@ -779,12 +780,12 @@ onUnmounted(() => {
   margin-bottom: 0;
 }
 
-.ai-answer pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: inherit;
+.ai-answer {
   line-height: 1.6;
+}
+
+.ai-answer :deep(.markdown-content) {
+  margin: 0;
 }
 
 .message-meta {

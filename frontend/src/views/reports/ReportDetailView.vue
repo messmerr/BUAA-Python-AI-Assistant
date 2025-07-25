@@ -123,7 +123,9 @@
           <span>详细分析报告</span>
         </template>
         
-        <div class="report-text" v-html="formatReportContent(reportsStore.currentReport.report_content)"></div>
+        <div class="report-text">
+          <MarkdownRenderer :content="reportsStore.currentReport.report_content" />
+        </div>
       </el-card>
 
       <!-- 生成信息 -->
@@ -143,11 +145,12 @@
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useReportsStore } from '@/stores'
-import { 
-  ArrowLeft, Loading, User, Calendar, Document, Clock, 
-  Printer, Download, TrophyBase, ChatDotRound, CircleCheck 
+import {
+  ArrowLeft, Loading, User, Calendar, Document, Clock,
+  Printer, Download, TrophyBase, ChatDotRound, CircleCheck
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -202,15 +205,7 @@ const getCompletionLevel = () => {
   return '需要提高'
 }
 
-const formatReportContent = (content: string) => {
-  // 将换行符转换为HTML换行
-  return content
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // 粗体
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')  // 斜体
-    .replace(/^(\d+\.\s)/gm, '<div class="numbered-item">$1')  // 数字列表
-    .replace(/^(-\s)/gm, '<div class="bullet-item">$1')  // 项目符号
-}
+
 
 const printReport = () => {
   window.print()
@@ -389,23 +384,21 @@ onMounted(async () => {
   font-size: 15px;
 }
 
-.report-text :deep(strong) {
+.report-text :deep(.markdown-content) {
+  margin: 0;
+}
+
+.report-text :deep(.markdown-content strong) {
   color: #409eff;
   font-weight: 600;
 }
 
-.report-text :deep(em) {
+.report-text :deep(.markdown-content em) {
   color: #e6a23c;
   font-style: normal;
   background: #fdf6ec;
   padding: 2px 4px;
   border-radius: 3px;
-}
-
-.report-text :deep(.numbered-item),
-.report-text :deep(.bullet-item) {
-  margin: 8px 0;
-  padding-left: 16px;
 }
 
 .report-footer {

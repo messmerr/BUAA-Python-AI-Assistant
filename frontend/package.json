@@ -15,9 +15,11 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
+    "@types/markdown-it": "^14.1.2",
     "@vueuse/core": "^13.5.0",
     "axios": "^1.11.0",
     "element-plus": "^2.10.4",
+    "markdown-it": "^14.1.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.17",
     "vue-router": "^4.5.1"

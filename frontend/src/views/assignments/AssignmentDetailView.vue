@@ -19,7 +19,9 @@
             <span class="subject">{{ assignment.subject }}</span>
             <span class="score">总分：{{ assignment.total_score }}分</span>
           </div>
-          <p class="description">{{ assignment.description }}</p>
+          <div class="description">
+            <MarkdownRenderer :content="assignment.description" />
+          </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -67,7 +69,7 @@
               <span class="question-score">{{ question.score }}分</span>
             </div>
             <div class="question-content">
-              <p>{{ question.question_text }}</p>
+              <MarkdownRenderer :content="question.question_text" compact />
             </div>
           </div>
         </div>
@@ -107,6 +109,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore, useAssignmentsStore } from '@/stores'
 import { Loading } from '@element-plus/icons-vue'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
 const route = useRoute()
 const router = useRouter()

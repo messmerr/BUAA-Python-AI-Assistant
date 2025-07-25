@@ -79,7 +79,9 @@
             <div class="question-content">
               <div class="question-text">
                 <h4>题目：</h4>
-                <p>{{ answer.question_text }}</p>
+                <div class="question-markdown">
+                  <MarkdownRenderer :content="answer.question_text" compact />
+                </div>
               </div>
 
               <!-- 答案对比 -->
@@ -87,14 +89,14 @@
                 <div class="student-answer">
                   <h4>您的答案：</h4>
                   <div class="answer-box student">
-                    <pre>{{ answer.student_answer }}</pre>
+                    <MarkdownRenderer :content="answer.student_answer" compact />
                   </div>
                 </div>
 
                 <div class="reference-answer">
                   <h4>参考答案：</h4>
                   <div class="answer-box reference">
-                    <pre>{{ answer.reference_answer }}</pre>
+                    <MarkdownRenderer :content="answer.reference_answer" compact />
                   </div>
                 </div>
               </div>
@@ -104,7 +106,9 @@
                 <h4>AI评价：</h4>
                 <div class="feedback-box">
                   <el-icon class="feedback-icon"><ChatDotRound /></el-icon>
-                  <p>{{ answer.ai_feedback }}</p>
+                  <div class="feedback-content">
+                    <MarkdownRenderer :content="answer.ai_feedback" compact />
+                  </div>
                 </div>
               </div>
             </div>
@@ -136,6 +140,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAssignmentsStore } from '@/stores'
 import { formatDateTime } from '@/utils'
 import { Loading, ChatDotRound } from '@element-plus/icons-vue'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -339,14 +344,17 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.question-text p {
-  margin: 0;
-  color: #303133;
-  line-height: 1.6;
+.question-markdown {
   background: white;
   padding: 16px;
   border-radius: 6px;
   border: 1px solid #e4e7ed;
+}
+
+.question-markdown :deep(.markdown-content) {
+  margin: 0;
+  color: #303133;
+  line-height: 1.6;
 }
 
 .answers-comparison {
@@ -371,13 +379,10 @@ onMounted(() => {
   border-left: 4px solid #67c23a;
 }
 
-.answer-box pre {
+.answer-box :deep(.markdown-content) {
   margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: inherit;
-  line-height: 1.6;
   color: #303133;
+  line-height: 1.6;
 }
 
 .ai-feedback {
@@ -391,6 +396,16 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+}
+
+.feedback-content {
+  flex: 1;
+}
+
+.feedback-content :deep(.markdown-content) {
+  margin: 0;
+  color: #303133;
+  line-height: 1.6;
 }
 
 .feedback-icon {

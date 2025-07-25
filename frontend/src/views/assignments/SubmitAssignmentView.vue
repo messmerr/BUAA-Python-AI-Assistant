@@ -27,7 +27,9 @@
             <span class="subject">{{ assignment.subject }}</span>
             <span class="score">总分：{{ assignment.total_score }}分</span>
           </div>
-          <p class="description">{{ assignment.description }}</p>
+          <div class="description">
+            <MarkdownRenderer :content="assignment.description" />
+          </div>
         </div>
 
         <div class="header-actions">
@@ -59,7 +61,9 @@
             <div class="question-content">
               <div class="question-text">
                 <h4>题目：</h4>
-                <p>{{ question.question_text }}</p>
+                <div class="question-markdown">
+                  <MarkdownRenderer :content="question.question_text" compact />
+                </div>
               </div>
 
               <div class="answer-input">
@@ -163,6 +167,7 @@ import { useAssignmentsStore } from '@/stores'
 import { Loading } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
 const route = useRoute()
 const router = useRouter()
