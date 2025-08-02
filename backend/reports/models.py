@@ -39,7 +39,7 @@ class LearningReport(models.Model):
     # 统计数据
     total_assignments = models.IntegerField(default=0, verbose_name='总作业数')
     completed_assignments = models.IntegerField(default=0, verbose_name='已完成作业数')
-    average_score = models.FloatField(default=0.0, verbose_name='平均得分')
+    average_score = models.FloatField(default=0.0, verbose_name='平均得分率')
     total_questions = models.IntegerField(default=0, verbose_name='总提问数')
 
     # 报告内容

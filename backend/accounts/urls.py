@@ -11,4 +11,5 @@ urlpatterns = [
     
     # 用户信息
     path('profile/', views.profile_view, name='profile'),
+    path('students/', views.get_students, name='get_students'),  # GET - 获取学生列表
 ]

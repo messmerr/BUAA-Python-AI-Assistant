@@ -81,7 +81,7 @@ const routes: RouteRecordRaw[] = [
         path: '/reports',
         name: 'Reports',
         component: () => import('@/views/reports/ReportsView.vue'),
-        meta: { requiresAuth: true }
+        meta: { title: '报告中心', requiresAuth: true }
       },
       {
         path: '/reports/:id',
@@ -151,4 +151,5 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
+
 
