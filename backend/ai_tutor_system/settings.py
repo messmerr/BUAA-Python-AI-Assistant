@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "assignments",
     "qa",
     "reports",
+    "chat",
 ]
 
 MIDDLEWARE = [

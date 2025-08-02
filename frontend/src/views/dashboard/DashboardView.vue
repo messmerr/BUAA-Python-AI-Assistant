@@ -23,6 +23,13 @@
           <p>AI助手为您答疑解惑</p>
         </div>
 
+        <div class="action-card" @click="$router.push('/chat')">
+          <el-icon class="card-icon" size="32"><Message /></el-icon>
+          <h4>师生交流</h4>
+          <p>与{{ authStore.user?.role === 'teacher' ? '学生' : '老师' }}在线交流</p>
+          <el-badge v-if="unreadCount > 0" :value="unreadCount" class="chat-badge" />
+        </div>
+
         <div class="action-card" @click="$router.push('/reports')">
           <el-icon class="card-icon" size="32"><Document /></el-icon>
           <h4>学习报告</h4>
@@ -40,10 +47,19 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '@/stores'
-import { Document, ChatDotRound, User } from '@element-plus/icons-vue'
+import { computed, onMounted } from 'vue'
+import { useAuthStore, useChatStore } from '@/stores'
+import { Document, ChatDotRound, Message, User } from '@element-plus/icons-vue'
 
 const authStore = useAuthStore()
+const chatStore = useChatStore()
+
+// 未读消息数量
+const unreadCount = computed(() => chatStore.totalUnreadCount)
+
+onMounted(() => {
+  chatStore.fetchUnreadCount()
+})
 </script>
 
 <style scoped>
@@ -96,6 +112,7 @@ const authStore = useAuthStore()
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .action-card:hover {
@@ -121,4 +138,13 @@ const authStore = useAuthStore()
   font-size: 14px;
   line-height: 1.5;
 }
+
+.chat-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
 </style>
+
+
+
