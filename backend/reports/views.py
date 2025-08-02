@@ -923,7 +923,6 @@ def calculate_class_statistics(data):
 
 def generate_class_report_content(data, statistics, period, subjects):
     """生成班级报告内容"""
-    return "hh"
     start_time, end_time = data['time_range']
     
     # 构建班级数据上下文
