@@ -45,7 +45,7 @@
         </template>
 
         <div v-if="!reportsStore.classReport" class="empty-state">
-          <el-empty description="暂无班级报告，点击上方按钮生成">
+          <el-empty description="暂无班级报告，点击下方按钮生成">
             <el-button type="primary" @click="showClassReportDialog = true">
               生成班级报告
             </el-button>
