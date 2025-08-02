@@ -104,16 +104,17 @@
                     <el-table 
                       :data="reportsStore.classReport.statistics.student_performance.slice(0, 10)" 
                       size="small"
-                      max-height="280"
+                      max-height="350"
+                      style="width: 100%"
                     >
-                      <el-table-column prop="student_name" label="姓名" width="80" />
-                      <el-table-column prop="completed_assignments" label="完成数" width="60" />
-                      <el-table-column prop="average_score" label="得分率" width="60">
+                      <el-table-column prop="student_name" label="姓名" min-width="80" />
+                      <el-table-column prop="completed_assignments" label="完成数" min-width="70" />
+                      <el-table-column prop="average_score" label="平均得分率" min-width="90">
                         <template #default="{ row }">
                           {{ row.average_score }}%
                         </template>
                       </el-table-column>
-                      <el-table-column prop="qa_count" label="提问数" width="60" />
+                      <el-table-column prop="qa_count" label="提问数" min-width="70" />
                     </el-table>
                   </div>
                 </el-card>
@@ -1002,6 +1003,8 @@ const getReportCardClass = (report: any) => {
   padding: 40px 0;
 }
 </style>
+
+
 
 
 
