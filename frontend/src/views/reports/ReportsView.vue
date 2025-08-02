@@ -15,7 +15,7 @@
           :loading="reportsStore.generatingClass"
         >
           <el-icon><TrendCharts /></el-icon>
-          生成班级报告
+          更新班级报告
         </el-button>
         <el-button 
           type="primary" 
