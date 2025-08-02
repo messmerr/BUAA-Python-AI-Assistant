@@ -678,6 +678,9 @@ watch(() => reportsStore.classReport, (newReport) => {
 
 // 页面加载时获取数据
 onMounted(async () => {
+  // 先加载本地存储的班级报告
+  reportsStore.loadClassReportFromStorage()
+  
   await fetchReports()
   await fetchStudents()
 })
@@ -1003,6 +1006,7 @@ const getReportCardClass = (report: any) => {
   padding: 40px 0;
 }
 </style>
+
 
 
 

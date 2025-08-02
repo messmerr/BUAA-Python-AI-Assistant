@@ -57,6 +57,10 @@ export const useReportsStore = defineStore('reports', () => {
     try {
       const response = await reportsApi.generateClassReport(data)
       classReport.value = response.data
+      
+      // 保存到 localStorage
+      localStorage.setItem('classReport', JSON.stringify(response.data))
+      
       ElMessage.success('班级报告生成成功')
       return response.data
     } catch (error) {
@@ -65,6 +69,20 @@ export const useReportsStore = defineStore('reports', () => {
       throw error
     } finally {
       generatingClass.value = false
+    }
+  }
+
+  // 从本地存储加载班级报告
+  const loadClassReportFromStorage = () => {
+    try {
+      const stored = localStorage.getItem('classReport')
+      if (stored) {
+        classReport.value = JSON.parse(stored)
+        console.log('[DEBUG] 从本地存储加载班级报告成功')
+      }
+    } catch (error) {
+      console.error('加载本地班级报告失败:', error)
+      localStorage.removeItem('classReport')
     }
   }
 
@@ -108,6 +126,7 @@ export const useReportsStore = defineStore('reports', () => {
   // 清空班级报告
   const clearClassReport = () => {
     classReport.value = null
+    localStorage.removeItem('classReport')
   }
 
   return {
@@ -131,7 +150,10 @@ export const useReportsStore = defineStore('reports', () => {
     fetchReports,
     fetchReportDetail,
     clearCurrentReport,
-    clearClassReport
+    clearClassReport,
+    loadClassReportFromStorage
   }
 })
+
+
 
