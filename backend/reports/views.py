@@ -329,9 +329,11 @@ def generate_report_content(student, data, statistics, period, subjects):
         return f"报告生成失败，错误信息：{str(e)}"
 
 
-def generate_simple_report(student, period, subjects, statistics):
-    """生成简化版报告（当数据收集失败时使用）"""
-    return f"""
+def generate_simple_report(student, period, subjects, statistics, data=None):
+    """生成简化版报告（当AI生成失败时使用）- 优化版"""
+    
+    # 基础信息
+    basic_info = f"""
 # {student.real_name} 学习报告
 
 ## 基本信息
@@ -340,31 +342,173 @@ def generate_simple_report(student, period, subjects, statistics):
 - 报告时间段：{period}
 - 涉及科目：{', '.join(subjects) if subjects else '所有科目'}
 
-## 学习统计
+## 学习统计概览
 - 总作业数：{statistics['total_assignments']}
 - 已完成作业数：{statistics['completed_assignments']}
 - 平均得分：{statistics['average_score']}%
 - 提问次数：{statistics['total_questions']}
-
-## 学习评价
-根据您的学习数据，我们为您生成了这份简化的学习报告。
-
-### 作业完成情况
-您在此时间段内共有 {statistics['total_assignments']} 份作业，完成了 {statistics['completed_assignments']} 份，
-完成率为 {round(statistics['completed_assignments']/statistics['total_assignments']*100, 2) if statistics['total_assignments'] > 0 else 0}%。
-
-### 学习表现
-您的平均得分为 {statistics['average_score']}%，{'表现优秀' if statistics['average_score'] >= 80 else '还有提升空间' if statistics['average_score'] >= 60 else '需要加强学习'}。
-
-### 学习建议
-1. 继续保持良好的学习习惯
-2. 多与AI助教互动，积极提问
-3. 及时完成作业，巩固知识点
-4. 定期复习，查漏补缺
-
----
-*本报告由AI助教系统自动生成*
 """
+
+    # 如果没有data，返回基础版本
+    if not data:
+        return basic_info + """
+## 学习评价
+数据收集过程中遇到问题，仅能提供基础统计信息。建议联系技术支持获取详细报告。
+"""
+
+    # 作业完成情况详细分析
+    assignment_analysis = "\n## 作业完成情况分析\n"
+    
+    if statistics['total_assignments'] > 0:
+        completion_rate = round(statistics['completed_assignments']/statistics['total_assignments']*100, 2)
+        assignment_analysis += f"### 完成率分析\n"
+        assignment_analysis += f"您的作业完成率为 {completion_rate}%，"
+        
+        if completion_rate >= 90:
+            assignment_analysis += "表现非常优秀，学习态度积极主动。\n\n"
+        elif completion_rate >= 70:
+            assignment_analysis += "表现良好，建议继续保持。\n\n"
+        elif completion_rate >= 50:
+            assignment_analysis += "完成情况一般，建议提高学习积极性。\n\n"
+        else:
+            assignment_analysis += "完成率偏低，需要加强时间管理和学习计划。\n\n"
+    
+    # 分析具体作业表现
+    if data.get('submissions'):
+        assignment_analysis += "### 作业得分情况\n"
+        try:
+            scores = []
+            subjects_performance = {}
+            
+            for submission in data['submissions']:
+                if hasattr(submission, 'total_score') and hasattr(submission, 'assignment'):
+                    score = submission.total_score or 0
+                    max_score = getattr(submission.assignment, 'total_score', 0)
+                    if max_score > 0:
+                        percentage = round((score / max_score) * 100, 2)
+                        scores.append(percentage)
+                        
+                        # 按科目统计
+                        subject = getattr(submission.assignment, 'subject', '未知科目')
+                        if subject not in subjects_performance:
+                            subjects_performance[subject] = []
+                        subjects_performance[subject].append(percentage)
+            
+            if scores:
+                avg_score = round(sum(scores) / len(scores), 2)
+                max_score = max(scores)
+                min_score = min(scores)
+                
+                assignment_analysis += f"- 平均得分：{avg_score}%\n"
+                assignment_analysis += f"- 最高得分：{max_score}%\n"
+                assignment_analysis += f"- 最低得分：{min_score}%\n"
+                
+                # 成绩稳定性分析
+                if max_score - min_score <= 20:
+                    assignment_analysis += "- 成绩表现稳定，学习状态良好\n\n"
+                else:
+                    assignment_analysis += "- 成绩波动较大，建议保持稳定的学习节奏\n\n"
+                
+                # 各科目表现
+                if len(subjects_performance) > 1:
+                    assignment_analysis += "### 各科目表现\n"
+                    for subject, subject_scores in subjects_performance.items():
+                        subject_avg = round(sum(subject_scores) / len(subject_scores), 2)
+                        assignment_analysis += f"- {subject}：平均 {subject_avg}%（{len(subject_scores)}次作业）\n"
+                    assignment_analysis += "\n"
+        except Exception as e:
+            assignment_analysis += "作业详情分析遇到问题，请联系技术支持。\n\n"
+    
+    # 学习行为分析
+    behavior_analysis = "\n## 学习行为分析\n"
+    
+    # 问答活跃度分析
+    total_qa = statistics['total_questions']
+    if total_qa > 0:
+        behavior_analysis += f"### 提问活跃度\n"
+        behavior_analysis += f"在此期间您共提问 {total_qa} 次，"
+        
+        if total_qa >= 20:
+            behavior_analysis += "学习非常主动，善于思考和提问。\n\n"
+        elif total_qa >= 10:
+            behavior_analysis += "学习比较主动，保持良好的提问习惯。\n\n"
+        elif total_qa >= 5:
+            behavior_analysis += "有一定的学习主动性，建议多与AI助教互动。\n\n"
+        else:
+            behavior_analysis += "提问较少，建议遇到问题时积极寻求帮助。\n\n"
+        
+        # 分析问答内容
+        if data.get('qa_sessions') or data.get('old_qa_questions'):
+            behavior_analysis += "### 问题类型分析\n"
+            try:
+                subjects_qa = {}
+                
+                # 统计新版问答
+                if data.get('qa_sessions'):
+                    for session in data['qa_sessions']:
+                        subject = getattr(session, 'subject', '未知科目')
+                        subjects_qa[subject] = subjects_qa.get(subject, 0) + 1
+                
+                # 统计旧版问答
+                if data.get('old_qa_questions'):
+                    for question in data['old_qa_questions']:
+                        subject = getattr(question, 'subject', '未知科目')
+                        subjects_qa[subject] = subjects_qa.get(subject, 0) + 1
+                
+                if subjects_qa:
+                    for subject, count in subjects_qa.items():
+                        behavior_analysis += f"- {subject}：{count} 次提问\n"
+                    
+                    # 找出最关注的科目
+                    most_asked_subject = max(subjects_qa, key=subjects_qa.get)
+                    behavior_analysis += f"\n您最关注的科目是 **{most_asked_subject}**，说明在该科目上投入了更多精力。\n\n"
+            except Exception as e:
+                behavior_analysis += "问题类型分析遇到问题。\n\n"
+    else:
+        behavior_analysis += "### 提问活跃度\n"
+        behavior_analysis += "在此期间您没有提问记录，建议遇到学习问题时积极与AI助教互动。\n\n"
+    
+    # 改进建议
+    suggestions = "\n## 个性化学习建议\n"
+    
+    # 基于完成率的建议
+    if statistics['total_assignments'] > 0:
+        completion_rate = statistics['completed_assignments']/statistics['total_assignments']
+        if completion_rate < 0.8:
+            suggestions += "### 📝 作业完成方面\n"
+            suggestions += "- 制定每日学习计划，确保按时完成作业\n"
+            suggestions += "- 设置作业提醒，避免遗漏\n"
+            suggestions += "- 如遇困难及时寻求帮助\n\n"
+    
+    # 基于得分的建议
+    if statistics['average_score'] < 70:
+        suggestions += "### 📈 成绩提升方面\n"
+        suggestions += "- 加强基础知识复习\n"
+        suggestions += "- 多做练习题巩固知识点\n"
+        suggestions += "- 分析错题，找出薄弱环节\n\n"
+    elif statistics['average_score'] >= 85:
+        suggestions += "### 🎯 优秀保持方面\n"
+        suggestions += "- 继续保持良好的学习习惯\n"
+        suggestions += "- 可以尝试更有挑战性的题目\n"
+        suggestions += "- 帮助其他同学，巩固自己的知识\n\n"
+    
+    # 基于提问情况的建议
+    if total_qa < 5:
+        suggestions += "### 💬 互动学习方面\n"
+        suggestions += "- 遇到疑问时主动提问\n"
+        suggestions += "- 利用AI助教解决学习难题\n"
+        suggestions += "- 培养批判性思维，多问为什么\n\n"
+    
+    # 通用建议
+    suggestions += "### 🌟 通用学习建议\n"
+    suggestions += "- 定期复习已学知识，巩固记忆\n"
+    suggestions += "- 保持良好的学习节奏，避免临时抱佛脚\n"
+    suggestions += "- 多与同学和老师交流，分享学习心得\n"
+    suggestions += "- 关注学习方法，提高学习效率\n\n"
+    
+    footer = "---\n*本报告基于您的学习数据自动生成，如需更详细的分析请联系任课教师*"
+    
+    return basic_info + assignment_analysis + behavior_analysis + suggestions + footer
 
 
 @extend_schema(
@@ -451,7 +595,7 @@ def generate_report(request):
             print(f"[DEBUG] 报告内容生成成功，长度: {len(report_content)}")
         except Exception as e:
             print(f"[DEBUG] 详细报告生成失败: {e}，使用简化版本")
-            report_content = generate_simple_report(student, period, subjects, statistics)
+            report_content = generate_simple_report(student, period, subjects, statistics, data)  # 传入data参数
 
         # 更新报告
         report.report_content = report_content
