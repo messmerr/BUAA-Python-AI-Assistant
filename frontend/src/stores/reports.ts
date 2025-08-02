@@ -1,29 +1,26 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { reportsApi, type LearningReport, type LearningReportListItem, type GenerateReportRequest } from '@/api/reports'
+import { reportsApi, type LearningReportListItem, type LearningReport, type GenerateReportRequest, type ClassReportRequest, type ClassReportResponse } from '@/api/reports'
 import { ElMessage } from 'element-plus'
 
 export const useReportsStore = defineStore('reports', () => {
   // 状态
   const reports = ref<LearningReportListItem[]>([])
   const currentReport = ref<LearningReport | null>(null)
+  const classReport = ref<ClassReportResponse | null>(null)
   const loading = ref(false)
   const generating = ref(false)
-  const total = ref(0)
+  const generatingClass = ref(false)
 
   // 计算属性
   const reportCount = computed(() => reports.value.length)
   
-  // 按状态分组报告
-  const getReportsByStatus = computed(() => {
-    const grouped: Record<string, LearningReportListItem[]> = {}
-    reports.value.forEach(report => {
-      if (!grouped[report.status]) {
-        grouped[report.status] = []
-      }
-      grouped[report.status].push(report)
-    })
-    return grouped
+  const completedReports = computed(() => {
+    return reports.value.filter(report => report.status === 'completed').length
+  })
+  
+  const generatingReports = computed(() => {
+    return reports.value.filter(report => report.status === 'generating').length
   })
 
   // 获取最近的报告
@@ -54,18 +51,29 @@ export const useReportsStore = defineStore('reports', () => {
     }
   }
 
+  // 生成班级报告
+  const generateClassReport = async (data: ClassReportRequest) => {
+    generatingClass.value = true
+    try {
+      const response = await reportsApi.generateClassReport(data)
+      classReport.value = response.data
+      ElMessage.success('班级报告生成成功')
+      return response.data
+    } catch (error) {
+      console.error('生成班级报告失败:', error)
+      ElMessage.error('生成班级报告失败')
+      throw error
+    } finally {
+      generatingClass.value = false
+    }
+  }
+
   // 获取报告列表
-  const fetchReports = async (params?: {
-    page?: number
-    page_size?: number
-    status?: string
-    period?: string
-  }) => {
+  const fetchReports = async (params?: any) => {
     loading.value = true
     try {
       const response = await reportsApi.getReports(params)
       reports.value = response.data.reports
-      total.value = response.data.pagination.total
       return response.data
     } catch (error) {
       console.error('获取报告列表失败:', error)
@@ -92,40 +100,38 @@ export const useReportsStore = defineStore('reports', () => {
     }
   }
 
-  // 清除当前报告
+  // 清空当前报告
   const clearCurrentReport = () => {
     currentReport.value = null
   }
 
-  // 检查报告生成状态
-  const checkReportStatus = async (reportId: string) => {
-    try {
-      const report = await fetchReportDetail(reportId)
-      return report.status
-    } catch (error) {
-      console.error('检查报告状态失败:', error)
-      return 'failed'
-    }
+  // 清空班级报告
+  const clearClassReport = () => {
+    classReport.value = null
   }
 
   return {
     // 状态
     reports,
     currentReport,
+    classReport,
     loading,
     generating,
-    total,
+    generatingClass,
     
     // 计算属性
     reportCount,
-    getReportsByStatus,
+    completedReports,
+    generatingReports,
     getRecentReports,
     
     // 方法
     generateReport,
+    generateClassReport,
     fetchReports,
     fetchReportDetail,
     clearCurrentReport,
-    checkReportStatus
+    clearClassReport
   }
 })
+

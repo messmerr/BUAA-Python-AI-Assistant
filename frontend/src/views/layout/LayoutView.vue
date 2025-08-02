@@ -34,7 +34,7 @@
 
         <el-menu-item index="/reports">
           <el-icon><Document /></el-icon>
-          <span>学习报告</span>
+          <span>{{ authStore.user?.role === 'teacher' ? '班级报告' : '学习报告' }}</span>
         </el-menu-item>
 
         <el-menu-item index="/profile">
@@ -109,7 +109,7 @@ const getPageTitle = () => {
     '/assignments': '作业管理',
     '/qa': '智能答疑',
     '/chat': '师生交流',
-    '/reports': '学习报告',
+    '/reports': authStore.user?.role === 'teacher' ? '班级报告' : '学习报告',
     '/profile': '个人中心'
   }
   return titleMap[route.path] || '首页'
@@ -242,6 +242,8 @@ const handleLogout = async () => {
   background: #f5f5f5;
 }
 </style>
+
+
 
 
 

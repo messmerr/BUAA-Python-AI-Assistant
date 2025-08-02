@@ -6,12 +6,16 @@ from django.db.models import Q, Avg, Count
 from django.utils import timezone
 from datetime import datetime, timedelta
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import LearningReport
 from .serializers import (
     LearningReportCreateSerializer,
     LearningReportListSerializer,
-    LearningReportDetailSerializer
+    LearningReportDetailSerializer,
+    ClassReportCreateSerializer
 )
 try:
     from accounts.models import User
@@ -21,14 +25,18 @@ except ImportError:
 
 try:
     from assignments.models import Assignment, Submission, Answer
-except ImportError:
+    print("[DEBUG] 成功导入 assignments 模型")
+except ImportError as e:
+    print(f"[DEBUG] 导入 assignments 模型失败: {e}")
     Assignment = None
     Submission = None
     Answer = None
 
 try:
     from qa.models import QASession, QAMessage, QAQuestion
-except ImportError:
+    print("[DEBUG] 成功导入 qa 模型")
+except ImportError as e:
+    print(f"[DEBUG] 导入 qa 模型失败: {e}")
     QASession = None
     QAMessage = None
     QAQuestion = None
@@ -524,12 +532,16 @@ def generate_simple_report(student, period, subjects, statistics, data=None):
 @permission_classes([permissions.IsAuthenticated])
 def generate_report(request):
     """生成学习报告"""
+    print(f"[DEBUG] 生成报告请求 - 用户: {request.user.real_name}, 角色: {request.user.role}")
+    print(f"[DEBUG] 请求数据: {request.data}")
+    
     serializer = LearningReportCreateSerializer(
         data=request.data,
         context={'request': request}
     )
 
     if not serializer.is_valid():
+        print(f"[DEBUG] 序列化器验证失败: {serializer.errors}")
         return Response({
             'code': 400,
             'message': '请求参数错误',
@@ -539,14 +551,33 @@ def generate_report(request):
     try:
         # 确定目标学生
         if request.user.role == 'teacher':
-            student_id = serializer.validated_data['student_id']
-            student = User.objects.get(id=student_id, role='student')
+            student_id = serializer.validated_data.get('student_id')
+            print(f"[DEBUG] 教师生成报告，目标学生ID: {student_id}")
+            
+            if not student_id:
+                return Response({
+                    'code': 400,
+                    'message': '教师生成报告时必须指定学生ID'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                student = User.objects.get(id=student_id, role='student')
+                print(f"[DEBUG] 找到目标学生: {student.real_name}")
+            except User.DoesNotExist:
+                return Response({
+                    'code': 404,
+                    'message': '指定的学生不存在'
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
+            # 学生只能为自己生成报告
             student = request.user
+            print(f"[DEBUG] 学生自己生成报告: {student.real_name}")
 
         period = serializer.validated_data['period']
         subjects = serializer.validated_data.get('subjects', [])
-
+        
+        print(f"[DEBUG] 报告参数 - 时间段: {period}, 科目: {subjects}")
+        
         # 创建报告记录
         report = LearningReport.objects.create(
             student=student,
@@ -645,7 +676,13 @@ def generate_report(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def list_reports(request):
-    """获取学习报告列表"""
+    """获取报告列表"""
+    # 学生只能看到自己的报告，教师可以看到所有报告
+    if request.user.role == 'student':
+        reports = LearningReport.objects.filter(student=request.user)
+    else:  # teacher
+        reports = LearningReport.objects.all()
+    
     # 获取查询参数
     page = int(request.GET.get('page', 1))
     page_size = int(request.GET.get('page_size', 10))
@@ -653,11 +690,7 @@ def list_reports(request):
     period_filter = request.GET.get('period', None)
 
     # 构建查询
-    queryset = LearningReport.objects.all()
-
-    # 根据用户角色过滤
-    if request.user.role == 'student':
-        queryset = queryset.filter(student=request.user)
+    queryset = reports
 
     # 状态过滤
     if status_filter:
@@ -718,3 +751,336 @@ def get_report_detail(request, report_id):
         'message': '获取成功',
         'data': serializer.data
     }, status=status.HTTP_200_OK)
+
+
+def collect_class_data(period, subjects):
+    """收集班级数据"""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    # 获取时间范围
+    start_time, end_time = get_time_range(period)
+    
+    # 获取所有学生
+    students = User.objects.filter(role='student')
+    
+    # 直接查询所有相关数据，而不是逐个学生收集
+    all_assignments = []
+    all_submissions = []
+    all_qa_sessions = []
+    all_old_qa_questions = []
+    
+    # 构建查询条件
+    assignment_filter = Q(created_at__gte=start_time, created_at__lte=end_time)
+    qa_filter = Q(created_at__gte=start_time, created_at__lte=end_time)
+
+    if subjects:
+        assignment_filter &= Q(subject__in=subjects)
+        qa_filter &= Q(subject__in=subjects)
+
+    # 直接查询所有作业数据
+    if Assignment is not None and Submission is not None:
+        try:
+            all_assignments = list(Assignment.objects.filter(assignment_filter))
+            all_submissions = list(Submission.objects.filter(
+                assignment__in=all_assignments,
+                student__role='student'  # 确保只查询学生的提交
+            ).select_related('assignment', 'student').prefetch_related('answers__question'))
+            print(f"[DEBUG] 查询到 {len(all_assignments)} 个作业，{len(all_submissions)} 个提交")
+        except Exception as e:
+            print(f"[DEBUG] 获取班级作业数据失败: {e}")
+
+    # 直接查询所有问答数据
+    if QASession is not None:
+        try:
+            all_qa_sessions = list(QASession.objects.filter(
+                student__role='student',
+                updated_at__gte=start_time,
+                updated_at__lte=end_time
+            ).select_related('student').prefetch_related('messages'))
+            if subjects:
+                all_qa_sessions = [s for s in all_qa_sessions if s.subject in subjects]
+            print(f"[DEBUG] 查询到 {len(all_qa_sessions)} 个QA会话")
+        except Exception as e:
+            print(f"[DEBUG] 获取班级QA会话数据失败: {e}")
+
+    # 查询旧的QA数据
+    if QAQuestion is not None:
+        try:
+            all_old_qa_questions = list(QAQuestion.objects.filter(
+                student__role='student',
+                created_at__gte=start_time,
+                created_at__lte=end_time
+            ).select_related('student', 'answer'))
+            if subjects:
+                all_old_qa_questions = [q for q in all_old_qa_questions if q.subject in subjects]
+            print(f"[DEBUG] 查询到 {len(all_old_qa_questions)} 个旧QA问题")
+        except Exception as e:
+            print(f"[DEBUG] 获取班级旧QA数据失败: {e}")
+    
+    return {
+        'students': list(students),
+        'assignments': all_assignments,
+        'submissions': all_submissions,
+        'qa_sessions': all_qa_sessions,
+        'old_qa_questions': all_old_qa_questions,
+        'time_range': (start_time, end_time)
+    }
+
+def calculate_class_statistics(data):
+    """计算班级统计数据"""
+    students = data['students']
+    submissions = data['submissions']
+    assignments = data['assignments']
+    qa_sessions = data['qa_sessions']
+    old_qa_questions = data['old_qa_questions']
+    
+    # 基础统计
+    total_students = len(students)
+    total_assignments = len(assignments)
+    total_submissions = len(submissions)
+    
+    # 完成率统计
+    completion_rate = (total_submissions / (total_students * total_assignments) * 100) if (total_students * total_assignments) > 0 else 0
+    
+    # 按学生计算平均得分率和分数分布
+    student_averages = []
+    score_distribution = {'0-60': 0, '60-70': 0, '70-80': 0, '80-90': 0, '90-100': 0}
+    
+    for student in students:
+        student_submissions = [s for s in submissions if hasattr(s, 'student') and s.student.id == student.id]
+        student_scores = []
+        
+        for submission in student_submissions:
+            if hasattr(submission, 'obtained_score') and hasattr(submission, 'assignment'):
+                score = submission.obtained_score or 0
+                max_score = getattr(submission.assignment, 'total_score', 0)
+                if max_score > 0:
+                    percentage = (score / max_score) * 100
+                    student_scores.append(percentage)
+        
+        # 计算学生平均得分率
+        if student_scores:
+            student_avg = sum(student_scores) / len(student_scores)
+            student_averages.append(student_avg)
+            
+            # 按学生平均得分率统计分布
+            if student_avg < 60:
+                score_distribution['0-60'] += 1
+            elif student_avg < 70:
+                score_distribution['60-70'] += 1
+            elif student_avg < 80:
+                score_distribution['70-80'] += 1
+            elif student_avg < 90:
+                score_distribution['80-90'] += 1
+            else:
+                score_distribution['90-100'] += 1
+    
+    # 班级平均得分率
+    average_score = sum(student_averages) / len(student_averages) if student_averages else 0
+    
+    # 学生表现统计
+    student_performance = []
+    for student in students:
+        student_submissions = [s for s in submissions if hasattr(s, 'student') and s.student.id == student.id]
+        student_scores = []
+        
+        for submission in student_submissions:
+            if hasattr(submission, 'obtained_score') and hasattr(submission, 'assignment'):
+                score = submission.obtained_score or 0
+                max_score = getattr(submission.assignment, 'total_score', 0)
+                if max_score > 0:
+                    student_scores.append((score / max_score) * 100)
+        
+        # 学生问答统计
+        student_qa_count = 0
+        if qa_sessions:
+            student_qa_count += len([q for q in qa_sessions if hasattr(q, 'student') and q.student.id == student.id])
+        if old_qa_questions:
+            student_qa_count += len([q for q in old_qa_questions if hasattr(q, 'student') and q.student.id == student.id])
+        
+        student_performance.append({
+            'student_name': student.real_name,
+            'student_id': student.student_id,
+            'completed_assignments': len(student_submissions),
+            'average_score': round(sum(student_scores) / len(student_scores), 2) if student_scores else 0,
+            'qa_count': student_qa_count
+        })
+    
+    # 问答统计
+    total_questions = len(qa_sessions) + len(old_qa_questions)
+    
+    return {
+        'total_students': total_students,
+        'total_assignments': total_assignments,
+        'total_submissions': total_submissions,
+        'completion_rate': round(completion_rate, 2),
+        'average_score': round(average_score, 2),
+        'score_distribution': score_distribution,
+        'student_performance': sorted(student_performance, key=lambda x: x['average_score'], reverse=True),
+        'total_questions': total_questions
+    }
+
+def generate_class_report_content(data, statistics, period, subjects):
+    """生成班级报告内容"""
+    return "hh"
+    start_time, end_time = data['time_range']
+    
+    # 构建班级数据上下文
+    context_data = {
+        'time_period': {
+            'period': period,
+            'start_date': start_time.strftime('%Y-%m-%d') if start_time else '未知',
+            'end_date': end_time.strftime('%Y-%m-%d') if end_time else '未知'
+        },
+        'subjects': subjects if subjects else ['所有科目'],
+        'statistics': statistics,
+        'top_students': statistics['student_performance'][:5],
+        'bottom_students': statistics['student_performance'][-3:] if len(statistics['student_performance']) > 3 else [],
+        'qa_analysis': []
+    }
+    
+    # 分析高频问题
+    try:
+        question_keywords = {}
+        for session in data.get('qa_sessions', []):
+            if hasattr(session, 'subject'):
+                subject = session.subject
+                question_keywords[subject] = question_keywords.get(subject, 0) + 1
+        
+        for question in data.get('old_qa_questions', []):
+            if hasattr(question, 'subject'):
+                subject = question.subject
+                question_keywords[subject] = question_keywords.get(subject, 0) + 1
+        
+        context_data['qa_analysis'] = sorted(question_keywords.items(), key=lambda x: x[1], reverse=True)[:5]
+    except Exception as e:
+        print(f"[DEBUG] 问答分析失败: {e}")
+    
+    # 构建AI提示词
+    prompt = f"""
+你是一位专业的教育分析师，请根据以下班级的整体学习数据生成一份班级分析报告。
+
+班级信息：
+- 分析时间段：{context_data['time_period']['start_date']} 至 {context_data['time_period']['end_date']} ({period})
+- 涉及科目：{', '.join(context_data['subjects'])}
+
+班级统计：
+- 班级总人数：{statistics['total_students']}
+- 总作业数：{statistics['total_assignments']}
+- 作业完成率：{statistics['completion_rate']}%
+- 班级平均分：{statistics['average_score']}%
+- 总提问次数：{statistics['total_questions']}
+
+成绩分布：
+{json.dumps(statistics['score_distribution'], ensure_ascii=False, indent=2)}
+
+优秀学生（前5名）：
+{json.dumps(context_data['top_students'], ensure_ascii=False, indent=2)}
+
+需要关注的学生：
+{json.dumps(context_data['bottom_students'], ensure_ascii=False, indent=2)}
+
+高频问题科目：
+{json.dumps(context_data['qa_analysis'], ensure_ascii=False, indent=2)}
+
+请生成一份结构化的班级分析报告，包含以下部分：
+
+1. **班级整体表现**
+   - 整体学习状况评价
+   - 完成率和成绩分析
+
+2. **优秀表现**
+   - 表现突出的学生
+   - 值得推广的学习方法
+
+3. **需要关注的问题**
+   - 学习困难的学生
+   - 普遍存在的问题
+
+4. **常见问题汇总**
+   - 高频提问的知识点
+   - 学生普遍困惑的内容
+
+5. **教学改进建议**
+   - 针对班级情况的教学调整
+   - 具体的改进措施
+
+请用专业、客观的语言撰写报告，字数控制在800-1200字。
+"""
+
+    try:
+        print(f"[DEBUG] 开始生成班级报告")
+        ai_response = ask_gemini(prompt, temperature=0.7)
+        print(f"[DEBUG] 班级报告生成成功，长度：{len(ai_response)}")
+        return ai_response
+    except Exception as e:
+        print(f"[DEBUG] 班级报告生成失败：{str(e)}")
+        return f"班级报告生成失败，错误信息：{str(e)}"
+
+print(f"[DEBUG] ===== views.py 文件被加载 =====")
+
+# 在函数定义前添加
+print(f"[DEBUG] 准备定义 generate_class_report 函数")
+
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def generate_class_report(request):
+    """生成班级报告"""
+    logger.info("===== generate_class_report 开始 =====")
+    logger.info(f"用户: {request.user.real_name}, 角色: {request.user.role}")
+    
+    # 验证请求数据
+    serializer = ClassReportCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        logger.error(f"参数验证失败: {serializer.errors}")
+        return Response({
+            'code': 400,
+            'message': '参数错误',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    period = serializer.validated_data['period']
+    subjects = serializer.validated_data.get('subjects', [])
+    
+    logger.info(f"验证通过 - 时间段: {period}, 科目: {subjects}")
+
+    try:
+        # 收集班级数据
+        logger.info("准备调用 collect_class_data")
+        data = collect_class_data(period, subjects)
+        logger.info("collect_class_data 调用完成")
+
+        # 计算统计数据
+        logger.info("准备调用 calculate_class_statistics")
+        statistics = calculate_class_statistics(data)
+        logger.info("calculate_class_statistics 调用完成")
+
+        # 生成AI报告内容
+        logger.info("准备调用 generate_class_report_content")
+        report_content = generate_class_report_content(data, statistics, period, subjects)
+        logger.info("generate_class_report_content 调用完成")
+
+        response_data = {
+            'statistics': statistics,
+            'report_content': report_content,
+            'generated_at': timezone.now()
+        }
+
+        logger.info("班级报告生成成功，返回数据")
+        return Response({
+            'code': 200,
+            'message': '班级报告生成成功',
+            'data': response_data
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"班级报告生成异常: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'code': 500,
+            'message': f'班级报告生成失败：{str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+print(f"[DEBUG] generate_class_report 函数定义完成")
