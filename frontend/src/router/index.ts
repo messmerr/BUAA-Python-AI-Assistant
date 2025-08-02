@@ -69,19 +69,19 @@ const routes: RouteRecordRaw[] = [
         path: '/qa',
         name: 'QA',
         component: () => import('@/views/qa/QAView.vue'),
-        meta: { title: '智能答疑', icon: 'ChatDotRound' }
+        meta: { requiresAuth: true }
       },
-      // {
-      //   path: '/qa/:id',
-      //   name: 'QADetail',
-      //   component: () => import('@/views/qa/QADetailView.vue'),
-      //   meta: { title: '问题详情' }
-      // },
+      {
+        path: '/chat',
+        name: 'Chat',
+        component: () => import('@/views/chat/ChatView.vue'),
+        meta: { requiresAuth: true }
+      },
       {
         path: '/reports',
         name: 'Reports',
         component: () => import('@/views/reports/ReportsView.vue'),
-        meta: { title: '学习报告', icon: 'Document' }
+        meta: { requiresAuth: true }
       },
       {
         path: '/reports/:id',
@@ -151,3 +151,4 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
+

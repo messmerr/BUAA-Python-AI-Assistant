@@ -26,6 +26,12 @@
           <span>智能答疑</span>
         </el-menu-item>
 
+        <el-menu-item index="/chat">
+          <el-icon><Message /></el-icon>
+          <span class="menu-text">师生交流</span>
+          <el-badge v-if="unreadCount > 0" :value="unreadCount" class="menu-badge" />
+        </el-menu-item>
+
         <el-menu-item index="/reports">
           <el-icon><Document /></el-icon>
           <span>学习报告</span>
@@ -70,14 +76,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores'
-import { House, Document, ChatDotRound, User } from '@element-plus/icons-vue'
+import { useAuthStore, useChatStore } from '@/stores'
+import { House, Document, ChatDotRound, Message, User } from '@element-plus/icons-vue'
 
+const authStore = useAuthStore()
+const chatStore = useChatStore()
 const router = useRouter()
 const route = useRoute()
-const authStore = useAuthStore()
+
+// 未读消息数量
+const unreadCount = computed(() => chatStore.totalUnreadCount)
+
+onMounted(() => {
+  // 获取未读消息数量
+  chatStore.fetchUnreadCount()
+})
 
 // 当前路由
 const currentRoute = computed(() => route.path)
@@ -93,6 +108,7 @@ const getPageTitle = () => {
     '/dashboard': '首页',
     '/assignments': '作业管理',
     '/qa': '智能答疑',
+    '/chat': '师生交流',
     '/reports': '学习报告',
     '/profile': '个人中心'
   }
@@ -140,9 +156,31 @@ const handleLogout = async () => {
   background: transparent;
 }
 
+/* 菜单项样式调整 */
 .sidebar-menu :deep(.el-menu-item) {
   color: #bfcbd9;
   border-bottom: 1px solid #434a5a;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.menu-text {
+  flex: 1;
+  text-align: left;
+}
+
+.menu-badge {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-85%);
+}
+
+.menu-badge :deep(.el-badge__content) {
+  position: static;
+  transform: none;
 }
 
 .sidebar-menu :deep(.el-menu-item:hover) {
@@ -204,3 +242,12 @@ const handleLogout = async () => {
   background: #f5f5f5;
 }
 </style>
+
+
+
+
+
+
+
+
+
