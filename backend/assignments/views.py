@@ -1,6 +1,7 @@
 from rest_framework import status, generics, permissions
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser # <--- 新增导入
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
@@ -188,6 +189,7 @@ def get_assignment_detail(request, assignment_id):
     description="学生提交作业"
 )
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser]) # <--- 新增此行
 @permission_classes([IsStudent])
 def submit_assignment(request, assignment_id):
     """提交作业 - 仅学生"""

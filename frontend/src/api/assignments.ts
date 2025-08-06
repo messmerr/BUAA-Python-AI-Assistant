@@ -64,8 +64,12 @@ export const assignmentsApi = {
   /**
    * 提交作业（学生）
    */
-  submitAssignment(assignmentId: string, data: SubmitAssignmentRequest): Promise<ApiResponse<{ submission_id: string; status: string; submitted_at: string }>> {
-    return request.post(`/assignments/${assignmentId}/submissions/`, data)
+  submitAssignment(assignmentId: string, data: FormData): Promise<ApiResponse<{ submission_id: string; status: string; submitted_at: string }>> { // <--- 修改 data 类型为 FormData
+    return request.post(`/assignments/${assignmentId}/submissions/`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data' // <--- 明确指定内容类型
+      }
+    })
   },
 
   /**

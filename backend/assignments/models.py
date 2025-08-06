@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError # <--- 新增导入
 
 
 class Assignment(models.Model):
@@ -117,7 +118,10 @@ class Answer(models.Model):
         related_name='answers',
         verbose_name='所属问题'
     )
-    answer_text = models.TextField(verbose_name='学生答案')
+    # --- 修改开始 ---
+    answer_text = models.TextField(verbose_name='学生答案', null=True, blank=True)
+    answer_image = models.ImageField(upload_to='answers/', null=True, blank=True, verbose_name='学生答案图片')
+    # --- 修改结束 ---
     obtained_score = models.IntegerField(null=True, blank=True, verbose_name='获得分数')
     ai_feedback = models.TextField(blank=True, verbose_name='AI反馈')
 
@@ -126,6 +130,15 @@ class Answer(models.Model):
         verbose_name = '答案'
         verbose_name_plural = '答案'
         unique_together = ['submission', 'question']
+
+    def clean(self):
+        """
+        验证答案只能是文本或图片之一。
+        """
+        if self.answer_text and self.answer_image:
+            raise ValidationError('答案不能同时包含文本和图片。')
+        if not self.answer_text and not self.answer_image:
+            raise ValidationError('必须提供文本答案或图片答案。')
 
     def __str__(self):
         return f"{self.submission.student.username} - {self.question.question_text[:50]}"

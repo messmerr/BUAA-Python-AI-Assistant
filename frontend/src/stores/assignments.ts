@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { assignmentsApi } from '@/api'
-import type { Assignment, CreateAssignmentRequest, SubmitAssignmentRequest, Submission } from '@/types'
+import type { Assignment, CreateAssignmentRequest, Submission } from '@/types' // <--- 从这里移除 SubmitAssignmentRequest
 import { ElMessage } from 'element-plus'
 
 export const useAssignmentsStore = defineStore('assignments', () => {
@@ -149,13 +149,11 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   }
 
   // 提交作业（学生）
-  const submitAssignment = async (assignmentId: string, data: SubmitAssignmentRequest) => {
+  const submitAssignment = async (assignmentId: string, data: FormData) => { // <--- 修改 data 类型为 FormData
     loading.value = true
     try {
-      console.log('Store: 开始提交作业')
-      console.log('Store: 作业ID:', assignmentId)
-      console.log('Store: 提交数据:', data)
-
+      console.log('Store: 开始提交作业 (FormData)')
+      
       const response = await assignmentsApi.submitAssignment(assignmentId, data)
       console.log('Store: 提交响应:', response)
 
