@@ -32,8 +32,8 @@
 
         <div class="action-card" @click="$router.push('/reports')">
           <el-icon class="card-icon" size="32"><Document /></el-icon>
-          <h4>学习报告</h4>
-          <p>查看个人学习分析报告</p>
+          <h4>{{ authStore.user?.role === 'teacher' ? '班级报告' : '学习报告' }}</h4>
+          <p>{{ authStore.user?.role === 'teacher' ? '查看班级学习分析报告' : '查看个人学习分析报告' }}</p>
         </div>
 
         <div class="action-card" @click="$router.push('/profile')">
@@ -145,6 +145,7 @@ onMounted(() => {
   right: 16px;
 }
 </style>
+
 
 
 

@@ -9,42 +9,60 @@ except ImportError:
 
 class LearningReportCreateSerializer(serializers.Serializer):
     """学习报告创建序列化器"""
-    student_id = serializers.UUIDField(required=False, help_text="学生ID，教师生成报告时必填")
+    student_id = serializers.UUIDField(required=False, help_text="学生ID（教师生成报告时必填）")
     period = serializers.ChoiceField(
-        choices=LearningReport.PERIOD_CHOICES,
-        default='month',
+        choices=[
+            ('week', '最近一周'),
+            ('month', '最近一个月'),
+            ('semester', '最近一学期'),
+            ('all', '全部时间')
+        ],
         help_text="时间段"
     )
     subjects = serializers.ListField(
         child=serializers.CharField(max_length=100),
         required=False,
-        default=list,
-        help_text="科目列表，为空则包含所有科目"
+        allow_empty=True,
+        help_text="科目列表（可选）"
     )
-    
+
     def validate(self, attrs):
         request = self.context.get('request')
-        user = request.user
         
-        # 如果是教师，必须提供student_id
-        if user.role == 'teacher' and not attrs.get('student_id'):
-            raise serializers.ValidationError("教师生成报告时必须指定学生ID")
+        # 教师生成学生报告时必须提供student_id
+        if request and request.user.role == 'teacher':
+            if 'student_id' not in attrs or not attrs['student_id']:
+                raise serializers.ValidationError({
+                    'student_id': '教师生成学生报告时必须指定学生ID'
+                })
         
-        # 如果是学生，不能指定student_id（只能为自己生成）
-        if user.role == 'student' and attrs.get('student_id'):
-            raise serializers.ValidationError("学生只能为自己生成报告")
+        # 学生不能指定student_id（只能为自己生成）
+        if request and request.user.role == 'student':
+            if 'student_id' in attrs:
+                raise serializers.ValidationError({
+                    'student_id': '学生只能为自己生成报告'
+                })
         
         return attrs
-    
-    def validate_student_id(self, value):
-        """验证学生ID"""
-        if value:
-            try:
-                student = User.objects.get(id=value, role='student')
-                return value
-            except User.DoesNotExist:
-                raise serializers.ValidationError("指定的学生不存在")
-        return value
+
+
+class ClassReportCreateSerializer(serializers.Serializer):
+    """班级报告创建序列化器"""
+    period = serializers.ChoiceField(
+        choices=[
+            ('week', '最近一周'),
+            ('month', '最近一个月'),
+            ('semester', '最近一学期'),
+            ('all', '全部时间')
+        ],
+        help_text="时间段"
+    )
+    subjects = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        required=False,
+        allow_empty=True,
+        help_text="科目列表（可选）"
+    )
 
 
 class LearningReportListSerializer(serializers.ModelSerializer):
