@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { assignmentsApi } from '@/api'
-import type { Assignment, CreateAssignmentRequest, Submission } from '@/types' // <--- 从这里移除 SubmitAssignmentRequest
+import type { Assignment, CreateAssignmentRequest, Submission } from '@/types'
 import { ElMessage } from 'element-plus'
 
 export const useAssignmentsStore = defineStore('assignments', () => {
@@ -32,11 +32,7 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   }) => {
     loading.value = true
     try {
-      console.log('获取作业列表，参数:', params)
       const response = await assignmentsApi.getAssignments(params)
-      console.log('作业列表响应:', response)
-
-      // 根据后端实际返回的数据格式解析
       assignments.value = response.data.assignments || []
       total.value = response.data.pagination?.total || 0
 
@@ -149,13 +145,10 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   }
 
   // 提交作业（学生）
-  const submitAssignment = async (assignmentId: string, data: FormData) => { // <--- 修改 data 类型为 FormData
+  const submitAssignment = async (assignmentId: string, data: FormData) => {
     loading.value = true
     try {
-      console.log('Store: 开始提交作业 (FormData)')
-      
       const response = await assignmentsApi.submitAssignment(assignmentId, data)
-      console.log('Store: 提交响应:', response)
 
       ElMessage.success('作业提交成功')
       return response.data

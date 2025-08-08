@@ -12,10 +12,11 @@
 </template>
 
 <script setup lang="ts">
-import { DocumentCopy, QuestionFilled, User } from '@element-plus/icons-vue'
+import { DocumentCopy } from '@element-plus/icons-vue'
+import type { Component } from 'vue'
 
 interface Props {
-  icon?: any
+  icon?: Component
   title: string
   description?: string
 }

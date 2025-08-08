@@ -32,10 +32,10 @@ class GeminiAIService:
         # 配置API
         genai.configure(api_key=self.api_key)
         
-        # 默认模型名称 - 使用更快的flash模型便于调试
+        # 默认使用高性能flash模型
         self.model_name = "gemini-2.5-flash"
         
-        # 安全设置 - 完全不过滤，适用于教育场景
+        # 安全设置 - 教育场景下不过滤内容
         self.safety_settings = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -63,15 +63,15 @@ class GeminiAIService:
         """
         try:
             if isinstance(image_data, str):
-                # 假设是base64编码的图片
+                # base64编码图片处理
                 if image_data.startswith('data:image'):
-                    # 移除data:image/jpeg;base64,前缀
+                    # 移除MIME类型前缀
                     image_data = image_data.split(',')[1]
                 image_bytes = base64.b64decode(image_data)
             elif isinstance(image_data, bytes):
                 image_bytes = image_data
             elif isinstance(image_data, Image.Image):
-                # PIL Image对象转换为字节
+                # PIL Image转字节数据
                 buffer = BytesIO()
                 image_data.save(buffer, format='PNG')
                 image_bytes = buffer.getvalue()
@@ -244,13 +244,12 @@ class GeminiAIService:
             # 开始聊天会话
             chat = model.start_chat(history=[])
             
-            # 添加历史消息（除了最后一条用户消息）
+            # 构建对话历史
             for i, message in enumerate(messages[:-1]):
                 if message["role"] == "user":
                     chat.send_message(message["content"])
-                # assistant的消息会自动添加到历史中
             
-            # 发送最后一条用户消息并获取响应
+            # 发送最新消息获取响应
             if messages and messages[-1]["role"] == "user":
                 response = chat.send_message(
                     messages[-1]["content"],

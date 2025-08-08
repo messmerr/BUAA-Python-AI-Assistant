@@ -2,10 +2,8 @@ import request from '@/utils/request'
 import type { 
   Assignment, 
   CreateAssignmentRequest, 
-  SubmitAssignmentRequest,
   Submission,
-  ApiResponse,
-  PaginatedResponse 
+  ApiResponse
 } from '@/types'
 
 /**
@@ -64,10 +62,10 @@ export const assignmentsApi = {
   /**
    * 提交作业（学生）
    */
-  submitAssignment(assignmentId: string, data: FormData): Promise<ApiResponse<{ submission_id: string; status: string; submitted_at: string }>> { // <--- 修改 data 类型为 FormData
+  submitAssignment(assignmentId: string, data: FormData): Promise<ApiResponse<{ submission_id: string; status: string; submitted_at: string }>> {
     return request.post(`/assignments/${assignmentId}/submissions/`, data, {
       headers: {
-        'Content-Type': 'multipart/form-data' // <--- 明确指定内容类型
+        'Content-Type': 'multipart/form-data'
       }
     })
   },

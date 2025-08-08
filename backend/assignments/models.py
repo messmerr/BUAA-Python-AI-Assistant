@@ -1,11 +1,11 @@
 import uuid
 from django.db import models
 from django.conf import settings
-from django.core.exceptions import ValidationError # <--- 新增导入
+from django.core.exceptions import ValidationError
 
 
 class Assignment(models.Model):
-    """作业模型 - 严格按照API规范"""
+    """作业模型"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=100, verbose_name='作业标题')
     description = models.TextField(verbose_name='作业描述')
@@ -37,7 +37,7 @@ class Assignment(models.Model):
 
 
 class Question(models.Model):
-    """作业问题模型 - 严格按照API规范"""
+    """作业问题模型"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assignment = models.ForeignKey(
         Assignment,
@@ -61,7 +61,7 @@ class Question(models.Model):
 
 
 class Submission(models.Model):
-    """作业提交模型 - 严格按照API规范"""
+    """作业提交模型"""
     STATUS_CHOICES = (
         ('submitted', '已提交'),
         ('grading', '批改中'),
@@ -104,7 +104,7 @@ class Submission(models.Model):
 
 
 class Answer(models.Model):
-    """学生答案模型 - 严格按照API规范"""
+    """学生答案模型"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     submission = models.ForeignKey(
         Submission,
@@ -118,10 +118,8 @@ class Answer(models.Model):
         related_name='answers',
         verbose_name='所属问题'
     )
-    # --- 修改开始 ---
     answer_text = models.TextField(verbose_name='学生答案', null=True, blank=True)
     answer_image = models.ImageField(upload_to='answers/', null=True, blank=True, verbose_name='学生答案图片')
-    # --- 修改结束 ---
     obtained_score = models.IntegerField(null=True, blank=True, verbose_name='获得分数')
     ai_feedback = models.TextField(blank=True, verbose_name='AI反馈')
 
@@ -132,13 +130,11 @@ class Answer(models.Model):
         unique_together = ['submission', 'question']
 
     def clean(self):
-        """
-        验证答案只能是文本或图片之一。
-        """
+        """验证答案只能是文本或图片之一"""
         if self.answer_text and self.answer_image:
-            raise ValidationError('答案不能同时包含文本和图片。')
+            raise ValidationError('答案不能同时包含文本和图片')
         if not self.answer_text and not self.answer_image:
-            raise ValidationError('必须提供文本答案或图片答案。')
+            raise ValidationError('必须提供文本答案或图片答案')
 
     def __str__(self):
         return f"{self.submission.student.username} - {self.question.question_text[:50]}"
