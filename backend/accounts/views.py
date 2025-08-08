@@ -164,3 +164,31 @@ class CustomTokenRefreshView(TokenRefreshView):
                 }
             }, status=status.HTTP_200_OK)
         return response
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_students(request):
+    """获取学生列表（仅教师可用）"""
+    # 只有教师可以获取学生列表
+    if request.user.role != 'teacher':
+        return Response({
+            'code': 403,
+            'message': '权限不足，只有教师可以获取学生列表'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        # 获取所有学生
+        students = User.objects.filter(role='student').values('id', 'real_name', 'username')
+        
+        return Response({
+            'code': 200,
+            'message': '获取学生列表成功',
+            'data': list(students)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'code': 500,
+            'message': f'获取学生列表失败：{str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

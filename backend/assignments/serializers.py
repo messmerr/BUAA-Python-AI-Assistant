@@ -158,11 +158,12 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             except Question.DoesNotExist:
                 submission.delete()
                 raise serializers.ValidationError(f"问题 {answer_data['question_id']} 不存在")
+# --- 第一个冲突点：修改开始 ---
 
             student_answer_text = ""
             answer_image_file = None
 
-            # --- 新增逻辑：处理图片或文本 ---
+            # 步骤 1: (来自 feature 分支) 检查是图片还是文本，并获取最终的文本答案
             if 'answer_image' in answer_data and answer_data['answer_image']:
                 answer_image_file = answer_data['answer_image']
                 # 使用AI进行OCR识别
@@ -170,10 +171,25 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             else:
                 student_answer_text = answer_data.get('answer_text', '')
 
-            # 使用AI批改答案
-            ai_score, ai_feedback = self._grade_answer_with_ai(
+            # 步骤 2: (来自 main 分支) 使用获取到的文本答案，优先进行精确匹配
+            ai_score, ai_feedback = self._check_exact_match(
                 question, student_answer_text
             )
+            
+            # 步骤 3: (融合逻辑) 如果精确匹配失败 (返回值为 None)，再调用完整的AI批改
+            if ai_score is None:
+                ai_score, ai_feedback = self._grade_answer_with_ai(
+                    question, student_answer_text
+                )
+
+# --- 第一个冲突点：修改结束 ---
+            )
+            
+            if ai_score is None:
+            # 使用AI批改答案
+                ai_score, ai_feedback = self._grade_answer_with_ai(
+                    question, answer_data['answer_text']
+                )
             
             # 创建答案记录
             Answer.objects.create(
@@ -194,6 +210,7 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
         submission.save()
         
         return submission
+# --- 第二个冲突点：修改开始 ---
 
     def _ocr_image_with_ai(self, image_file):
         """使用AI识别图片中的文字"""
@@ -213,6 +230,22 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             print(f"[DEBUG] AI OCR 异常: {str(e)}")
             return f"图片识别失败，错误：{str(e)}"
 
+    def _check_exact_match(self, question, student_answer):
+        """检查答案是否完全匹配"""
+        normalized_reference = question.reference_answer
+        normalized_student = student_answer
+        
+        print(f"[DEBUG] 标准答案: '{normalized_reference}'")
+        print(f"[DEBUG] 学生答案: '{normalized_student}'")
+        
+        # 完全匹配
+        if normalized_reference == normalized_student:
+            return question.score, "你的答案完全正确！"
+        
+        # 不匹配则返回 None，以便后续处理
+        return None, None
+        
+# --- 第二个冲突点：修改结束 ---
     def _grade_answer_with_ai(self, question, student_answer):
         """使用AI批改单个答案 - 使用XML标签格式 (逻辑不变)"""
         try:

@@ -88,7 +88,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-number">{{ reportsStore.currentReport.average_score }}%</div>
-              <div class="stat-label">平均得分</div>
+              <div class="stat-label">平均得分率</div>
               <div class="stat-detail">{{ getScoreLevel(reportsStore.currentReport.average_score) }}</div>
             </div>
           </div>
@@ -468,3 +468,4 @@ onMounted(async () => {
   }
 }
 </style>
+
