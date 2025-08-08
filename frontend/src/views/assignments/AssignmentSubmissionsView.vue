@@ -57,7 +57,7 @@
           style="width: 100%"
           empty-text="暂无提交记录"
         >
-          <el-table-column prop="student_name" label="学生姓名" width="120">
+          <el-table-column prop="student_name" label="学生姓名">
             <template #default="{ row }">
               <div class="student-info">
                 <div class="name">{{ row.student_name }}</div>
@@ -66,7 +66,7 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="status" label="状态">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">
                 {{ getStatusText(row.status) }}
@@ -74,7 +74,7 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="obtained_score" label="得分" width="120">
+          <el-table-column prop="obtained_score" label="得分">
             <template #default="{ row }">
               <div class="score-info">
                 <span class="score">{{ row.obtained_score }}/{{ row.total_score }}</span>
@@ -88,13 +88,13 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="submitted_at" label="提交时间" width="180">
+          <el-table-column prop="submitted_at" label="提交时间">
             <template #default="{ row }">
               {{ formatDateTime(row.submitted_at) }}
             </template>
           </el-table-column>
           
-          <el-table-column prop="graded_at" label="批改时间" width="180">
+          <el-table-column prop="graded_at" label="批改时间">
             <template #default="{ row }">
               {{ row.graded_at ? formatDateTime(row.graded_at) : '-' }}
             </template>
@@ -237,7 +237,7 @@ onMounted(() => {
 <style scoped>
 .assignment-submissions {
   padding: 24px;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
