@@ -108,7 +108,7 @@ export interface CreateAssignmentRequest {
 export interface SubmitAssignmentRequest {
   answers: {
     question_id: string
-    answer_text: string
+    answer_text?: string
   }[]
 }
 

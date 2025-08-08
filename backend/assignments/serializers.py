@@ -1,12 +1,15 @@
+# backend/assignments/serializers.py
+
 from rest_framework import serializers
 from django.utils import timezone
 from .models import Assignment, Question, Submission, Answer
 from ai_services import ask_gemini
+import re
 
+# ... (QuestionSerializer, AssignmentCreateSerializer, AssignmentListSerializer, AssignmentDetailSerializer 保持不变) ...
 
 class QuestionSerializer(serializers.ModelSerializer):
     """问题序列化器 - 严格按照API规范"""
-    
     class Meta:
         model = Question
         fields = ['id', 'question_text', 'reference_answer', 'score']
@@ -14,35 +17,28 @@ class QuestionSerializer(serializers.ModelSerializer):
             'id': {'read_only': True},
         }
 
-
 class AssignmentCreateSerializer(serializers.ModelSerializer):
     """作业创建序列化器 - 严格按照API规范"""
     questions = QuestionSerializer(many=True)
-
     class Meta:
         model = Assignment
         fields = ['title', 'description', 'subject', 'questions', 'deadline', 'total_score']
     
     def create(self, validated_data):
-        """创建作业和问题"""
         questions_data = validated_data.pop('questions')
         assignment = Assignment.objects.create(**validated_data)
-        
         for i, question_data in enumerate(questions_data):
             Question.objects.create(
                 assignment=assignment,
                 order=i + 1,
                 **question_data
             )
-        
         return assignment
-
 
 class AssignmentListSerializer(serializers.ModelSerializer):
     """作业列表序列化器 - 严格按照API规范"""
     is_completed = serializers.SerializerMethodField()
     obtained_score = serializers.SerializerMethodField()
-
     class Meta:
         model = Assignment
         fields = [
@@ -52,7 +48,6 @@ class AssignmentListSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_completed(self, obj):
-        """获取学生是否已完成作业"""
         request = self.context.get('request')
         if request and request.user.role == 'student':
             return Submission.objects.filter(
@@ -62,7 +57,6 @@ class AssignmentListSerializer(serializers.ModelSerializer):
         return None
 
     def get_obtained_score(self, obj):
-        """获取学生获得的分数"""
         request = self.context.get('request')
         if request and request.user.role == 'student':
             try:
@@ -75,13 +69,11 @@ class AssignmentListSerializer(serializers.ModelSerializer):
                 return None
         return None
 
-
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     """作业详情序列化器 - 严格按照API规范"""
     questions = QuestionSerializer(many=True, read_only=True)
     is_completed = serializers.SerializerMethodField()
     obtained_score = serializers.SerializerMethodField()
-
     class Meta:
         model = Assignment
         fields = [
@@ -91,7 +83,6 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_completed(self, obj):
-        """获取学生是否已完成作业"""
         request = self.context.get('request')
         if request and request.user.role == 'student':
             return Submission.objects.filter(
@@ -101,7 +92,6 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         return None
 
     def get_obtained_score(self, obj):
-        """获取学生获得的分数"""
         request = self.context.get('request')
         if request and request.user.role == 'student':
             try:
@@ -115,40 +105,49 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         return None
 
 
-class AnswerSubmissionSerializer(serializers.Serializer):
-    """答案提交序列化器 - 严格按照API规范"""
-    question_id = serializers.UUIDField()
-    answer_text = serializers.CharField()
+# --- 修改开始 ---
 
+class AnswerSubmissionSerializer(serializers.Serializer):
+    """答案提交序列化器 - 严格按照API规范 (已更新)"""
+    question_id = serializers.UUIDField()
+    answer_text = serializers.CharField(required=False, allow_blank=True)
+    answer_image = serializers.ImageField(required=False, allow_null=True)
+
+    def validate(self, data):
+        """验证答案只能是文本或图片之一"""
+        text = data.get('answer_text')
+        image = data.get('answer_image')
+
+        if text and image:
+            raise serializers.ValidationError("答案不能同时包含文本和图片。")
+        if not text and not image:
+            raise serializers.ValidationError("必须提供文本答案或图片答案。")
+            
+        return data
 
 class AssignmentSubmissionSerializer(serializers.Serializer):
-    """作业提交序列化器 - 严格按照API规范"""
+    """作业提交序列化器 - 严格按照API规范 (已更新)"""
     answers = AnswerSubmissionSerializer(many=True)
-    
+  
     def validate_answers(self, value):
-        """验证答案数据"""
         if not value:
             raise serializers.ValidationError("至少需要提交一个答案")
         return value
     
     def create(self, validated_data):
-        """创建作业提交并进行AI批改"""
         assignment = self.context['assignment']
         student = self.context['student']
         answers_data = validated_data['answers']
         
-        # 检查是否已经提交过
         if Submission.objects.filter(assignment=assignment, student=student).exists():
             raise serializers.ValidationError("您已经提交过这个作业")
         
-        # 创建提交记录
         submission = Submission.objects.create(
             assignment=assignment,
             student=student,
             status='grading'
         )
         
-        # 创建答案记录并进行AI批改
         total_score = 0
         for answer_data in answers_data:
             try:
@@ -159,9 +158,31 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             except Question.DoesNotExist:
                 submission.delete()
                 raise serializers.ValidationError(f"问题 {answer_data['question_id']} 不存在")
-            
+# --- 第一个冲突点：修改开始 ---
+
+            student_answer_text = ""
+            answer_image_file = None
+
+            # 步骤 1: (来自 feature 分支) 检查是图片还是文本，并获取最终的文本答案
+            if 'answer_image' in answer_data and answer_data['answer_image']:
+                answer_image_file = answer_data['answer_image']
+                # 使用AI进行OCR识别
+                student_answer_text = self._ocr_image_with_ai(answer_image_file)
+            else:
+                student_answer_text = answer_data.get('answer_text', '')
+
+            # 步骤 2: (来自 main 分支) 使用获取到的文本答案，优先进行精确匹配
             ai_score, ai_feedback = self._check_exact_match(
-                question, answer_data['answer_text']
+                question, student_answer_text
+            )
+            
+            # 步骤 3: (融合逻辑) 如果精确匹配失败 (返回值为 None)，再调用完整的AI批改
+            if ai_score is None:
+                ai_score, ai_feedback = self._grade_answer_with_ai(
+                    question, student_answer_text
+                )
+
+# --- 第一个冲突点：修改结束 ---
             )
             
             if ai_score is None:
@@ -174,14 +195,14 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             Answer.objects.create(
                 submission=submission,
                 question=question,
-                answer_text=answer_data['answer_text'],
+                answer_text=student_answer_text,
+                answer_image=answer_image_file, # <--- 保存图片文件
                 obtained_score=ai_score,
                 ai_feedback=ai_feedback
             )
             
             total_score += ai_score
         
-        # 更新提交记录
         submission.obtained_score = total_score
         submission.status = 'graded'
         submission.graded_at = timezone.now()
@@ -189,8 +210,28 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
         submission.save()
         
         return submission
-    
+# --- 第二个冲突点：修改开始 ---
+
+    def _ocr_image_with_ai(self, image_file):
+        """使用AI识别图片中的文字"""
+        try:
+            print(f"[DEBUG] 开始AI OCR，图片大小: {image_file.size} bytes")
+            # 读取图片字节
+            image_bytes = image_file.read()
+            
+            prompt = "请精确地识别并提取这张图片中的所有手写或印刷文字，并以纯文本形式返回。"
+            
+            # 调用AI服务，传入图片
+            extracted_text = ask_gemini(prompt, images=[image_bytes], temperature=0.1)
+            print(f"[DEBUG] AI OCR 结果: {extracted_text[:100]}...")
+            
+            return extracted_text if extracted_text else "图片识别失败，未能提取到文字。"
+        except Exception as e:
+            print(f"[DEBUG] AI OCR 异常: {str(e)}")
+            return f"图片识别失败，错误：{str(e)}"
+
     def _check_exact_match(self, question, student_answer):
+        """检查答案是否完全匹配"""
         normalized_reference = question.reference_answer
         normalized_student = student_answer
         
@@ -201,10 +242,12 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
         if normalized_reference == normalized_student:
             return question.score, "你的答案完全正确！"
         
+        # 不匹配则返回 None，以便后续处理
         return None, None
-    
+        
+# --- 第二个冲突点：修改结束 ---
     def _grade_answer_with_ai(self, question, student_answer):
-        """使用AI批改单个答案 - 使用XML标签格式"""
+        """使用AI批改单个答案 - 使用XML标签格式 (逻辑不变)"""
         try:
             prompt = f"""
 请作为一名专业教师，批改以下学生答案。
@@ -231,21 +274,17 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             ai_response = ask_gemini(prompt, temperature=0.3)
             print(f"[DEBUG] AI响应：{ai_response[:200]}...")
 
-            # 使用XML标签解析AI响应
             score = 0
             feedback = "AI批改暂时不可用"
 
-            # 解析分数标签
             try:
-                import re
                 score_match = re.search(r'<score>(.*?)</score>', ai_response, re.DOTALL)
                 if score_match:
                     score_text = score_match.group(1).strip()
-                    # 提取数字
                     score_numbers = re.findall(r'\d+', score_text)
                     if score_numbers:
                         score = int(score_numbers[0])
-                        score = max(0, min(score, question.score))  # 确保分数在有效范围内
+                        score = max(0, min(score, question.score))
                         print(f"[DEBUG] 解析得分：{score}")
                     else:
                         print(f"[DEBUG] 分数标签中未找到数字：{score_text}")
@@ -255,7 +294,6 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
                 print(f"[DEBUG] 分数解析失败：{parse_error}")
                 score = 0
 
-            # 解析反馈标签
             try:
                 feedback_match = re.search(r'<feedback>(.*?)</feedback>', ai_response, re.DOTALL)
                 if feedback_match:
@@ -263,7 +301,6 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
                     print(f"[DEBUG] 解析反馈：{feedback[:50]}...")
                 else:
                     print(f"[DEBUG] 未找到<feedback>标签")
-                    # 如果没有找到标签，尝试使用整个响应作为反馈
                     feedback = ai_response.strip()
             except Exception as parse_error:
                 print(f"[DEBUG] 反馈解析失败：{parse_error}")
@@ -273,12 +310,12 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             return score, feedback
 
         except Exception as e:
-            # AI批改失败时的降级处理
             print(f"[DEBUG] AI批改异常：{str(e)}")
             return 0, f"AI批改失败，请联系教师人工批改。错误：{str(e)}"
     
     def _generate_overall_feedback(self, submission):
-        """生成总体反馈 - 使用XML标签格式"""
+        """生成总体反馈 - 使用XML标签格式 (逻辑不变)"""
+        # ... (此函数内容保持不变) ...
         try:
             answers = submission.answers.all()
             total_possible = submission.assignment.total_score
@@ -306,20 +343,16 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
 
             ai_response = ask_gemini(prompt, temperature=0.5, max_tokens=200)
 
-            # 解析总体反馈标签
             try:
-                import re
                 feedback_match = re.search(r'<overall_feedback>(.*?)</overall_feedback>', ai_response, re.DOTALL)
                 if feedback_match:
                     return feedback_match.group(1).strip()
                 else:
-                    # 如果没有找到标签，使用整个响应
                     return ai_response.strip()
             except:
                 return ai_response.strip()
 
         except Exception:
-            # 降级处理
             if percentage >= 90:
                 return "优秀！继续保持这种学习状态。"
             elif percentage >= 80:
@@ -329,20 +362,25 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
             else:
                 return "需要努力，建议重新学习相关知识点并多做练习。"
 
+# --- 修改结束 ---
+
 
 class AnswerDetailSerializer(serializers.ModelSerializer):
-    """答案详情序列化器 - 严格按照API规范"""
+    """答案详情序列化器 - 严格按照API规范 (已更新)"""
     question_id = serializers.UUIDField(source='question.id')
     question_text = serializers.CharField(source='question.question_text')
     reference_answer = serializers.CharField(source='question.reference_answer')
     score = serializers.IntegerField(source='question.score')
     student_answer = serializers.CharField(source='answer_text')
+    # --- 新增字段 ---
+    student_image_url = serializers.ImageField(source='answer_image', read_only=True)
     
     class Meta:
         model = Answer
         fields = [
             'question_id', 'question_text', 'student_answer', 
-            'reference_answer', 'score', 'obtained_score', 'ai_feedback'
+            'reference_answer', 'score', 'obtained_score', 'ai_feedback',
+            'student_image_url' # <--- 新增
         ]
 
 

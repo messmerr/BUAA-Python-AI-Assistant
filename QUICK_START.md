@@ -66,6 +66,7 @@ python manage.py runserver
 ### 3. 前端配置
 
 #### 3.1 安装依赖
+
 ```bash
 cd frontend
 npm install
