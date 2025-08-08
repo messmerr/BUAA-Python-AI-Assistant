@@ -180,6 +180,12 @@ const userRole = computed(() => authStore.user?.role)
 // 方法
 const fetchUsers = async () => {
   await chatStore.fetchChatUsers()
+  // 切换账号后，如果当前选中对象是自己或不在列表中，则清空
+  const selected = chatStore.currentChatUser
+  const meId = authStore.user?.id
+  if (selected && (selected.id === meId || !chatStore.chatUsers.some(u => u.id === selected.id))) {
+    chatStore.setCurrentChatUser(null)
+  }
 }
 
 const selectUser = async (user: any) => {

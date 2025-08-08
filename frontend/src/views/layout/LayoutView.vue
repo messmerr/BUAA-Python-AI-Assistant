@@ -28,7 +28,7 @@
 
         <el-menu-item index="/chat">
           <el-icon><Message /></el-icon>
-          <span class="menu-text">师生交流</span>
+          <span>师生交流</span>
           <el-badge v-if="unreadCount > 0" :value="unreadCount" class="menu-badge" />
         </el-menu-item>
 
@@ -117,6 +117,8 @@ const getPageTitle = () => {
 
 // 退出登录
 const handleLogout = async () => {
+  // 清空聊天状态，避免跨账号残留
+  chatStore.resetChatState()
   await authStore.logout()
   router.push('/login')
 }

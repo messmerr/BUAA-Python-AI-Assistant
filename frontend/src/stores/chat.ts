@@ -117,10 +117,19 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  // 设置当前聊天用户
-  const setCurrentChatUser = (user: ChatUser) => {
+  // 设置当前聊天用户（允许清空）
+  const setCurrentChatUser = (user: ChatUser | null) => {
     currentChatUser.value = user
     messages.value = []
+  }
+
+  // 重置聊天状态（用于退出登录或账号切换）
+  const resetChatState = () => {
+    chatUsers.value = []
+    currentChatUser.value = null
+    messages.value = []
+    loading.value = false
+    totalUnreadCount.value = 0
   }
 
   return {
@@ -140,6 +149,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     markAsRead,
     fetchUnreadCount,
-    setCurrentChatUser
+    setCurrentChatUser,
+    resetChatState
   }
 })

@@ -51,16 +51,7 @@
             </div>
           </div>
           
-          <div class="report-actions">
-            <el-button @click="printReport">
-              <el-icon><Printer /></el-icon>
-              打印报告
-            </el-button>
-            <el-button type="primary" @click="exportReport">
-              <el-icon><Download /></el-icon>
-              导出PDF
-            </el-button>
-          </div>
+          
         </div>
       </el-card>
 
@@ -147,7 +138,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useReportsStore } from '@/stores'
 import {
   ArrowLeft, Loading, User, Calendar, Document, Clock,
-  Printer, Download, TrophyBase, ChatDotRound, CircleCheck
+  TrophyBase, ChatDotRound, CircleCheck
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
@@ -205,15 +196,7 @@ const getCompletionLevel = () => {
   return '需要提高'
 }
 
-
-
-const printReport = () => {
-  window.print()
-}
-
-const exportReport = () => {
-  ElMessage.info('PDF导出功能开发中...')
-}
+ 
 
 // 页面加载时获取报告详情
 onMounted(async () => {
@@ -296,10 +279,7 @@ onMounted(async () => {
   color: #909399;
 }
 
-.report-actions {
-  display: flex;
-  gap: 12px;
-}
+ 
 
 .stats-overview {
   margin-bottom: 24px;
@@ -421,8 +401,7 @@ onMounted(async () => {
     background: white;
   }
 
-  .back-button,
-  .report-actions {
+  .back-button {
     display: none;
   }
 
