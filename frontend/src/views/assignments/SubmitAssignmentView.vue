@@ -136,7 +136,7 @@
       </div>
     </div>
     
-    <div v-else-if="assignment && assignment.is_completed" class="completed-state">
+    <div v-else-if="assignment?.is_completed" class="completed-state">
       <el-result
         icon="success"
         title="作业已提交"
@@ -174,7 +174,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAssignmentsStore } from '@/stores'
 import { Loading, Upload, Delete } from '@element-plus/icons-vue'
-import type { FormInstance, UploadFile } from 'element-plus'
+import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
@@ -217,7 +217,7 @@ const initializeAnswers = () => {
   }
 }
 
-const handleFileChange = (uploadFile: UploadFile, index: number) => {
+const handleFileChange = (uploadFile: Record<string, unknown>, index: number) => {
   const answer = submissionForm.answers[index]
   if (answer.answer_text?.trim()) {
     ElMessage.warning('请先清空文本框再上传图片')

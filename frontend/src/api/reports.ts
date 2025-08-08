@@ -126,27 +126,7 @@ export const reportsApi = {
    * 生成班级报告
    */
   generateClassReport(data: ClassReportRequest): Promise<ApiResponse<ClassReportResponse>> {
-    console.log('[DEBUG] API方法被调用，参数:', data)
-    console.log('[DEBUG] 请求URL: /reports/class/generate/')
-    
-    console.log('[DEBUG] 准备发送POST请求...')
-    
-    const promise = request.post('/reports/class/generate/', data)
-    
-    console.log('[DEBUG] POST请求已创建，开始执行...')
-    
-    return promise
-      .then(response => {
-        console.log('[DEBUG] API请求成功，响应:', response)
-        return response
-      })
-      .catch(error => {
-        console.error('[DEBUG] API请求失败:', error)
-        console.error('[DEBUG] 错误详情:', error.response)
-        console.error('[DEBUG] 错误状态:', error.response?.status)
-        console.error('[DEBUG] 错误数据:', error.response?.data)
-        throw error
-      })
+    return request.post('/reports/class/generate/', data)
   }
 }
 

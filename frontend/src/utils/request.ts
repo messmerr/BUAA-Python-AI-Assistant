@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 
 // API基础配置
@@ -15,26 +15,15 @@ const request: AxiosInstance = axios.create({
 
 // 请求拦截器
 request.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
-    console.log('[DEBUG] 请求拦截器 - 方法:', config.method?.toUpperCase())
-    console.log('[DEBUG] 请求拦截器 - URL:', config.url)
-    console.log('[DEBUG] 请求拦截器 - 完整URL:', config.baseURL + config.url)
-    console.log('[DEBUG] 请求拦截器 - 数据:', config.data)
-    
+  (config: InternalAxiosRequestConfig) => {
     // 添加认证token
     const token = localStorage.getItem('access_token')
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
-      console.log('[DEBUG] 请求拦截器 - 已添加Token')
-    } else {
-      console.log('[DEBUG] 请求拦截器 - 未找到Token或headers为空')
     }
-    
-    console.log('[DEBUG] 请求拦截器 - 最终配置:', config)
     return config
   },
   (error) => {
-    console.error('[DEBUG] 请求拦截器错误:', error)
     return Promise.reject(error)
   }
 )
@@ -42,9 +31,6 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log('[DEBUG] 响应拦截器 - 收到响应')
-    console.log('[DEBUG] 响应拦截器 - 状态码:', response.status)
-    console.log('[DEBUG] 响应拦截器 - 响应头:', response.headers)
     console.log('[DEBUG] 响应拦截器 - 原始数据:', response.data)
     
     const { data } = response

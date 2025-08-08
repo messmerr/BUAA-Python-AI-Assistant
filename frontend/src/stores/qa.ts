@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { qaApi, type ChatSession, type ChatMessage, type ChatMessageRequest } from '@/api'
-import type { QAQuestion, CreateQuestionRequest } from '@/types'
+import { qaApi, type ChatMessageRequest } from '@/api'
+import type { QAQuestion, CreateQuestionRequest, ChatSession, ChatMessage, ChatSessionDetail } from '@/types'
 import { ElMessage } from 'element-plus'
 
 export const useQAStore = defineStore('qa', () => {
@@ -9,7 +9,7 @@ export const useQAStore = defineStore('qa', () => {
   const questions = ref<QAQuestion[]>([])
   const currentQuestion = ref<QAQuestion | null>(null)
   const sessions = ref<ChatSession[]>([])
-  const currentSession = ref<ChatSession | null>(null)
+  const currentSession = ref<ChatSession | ChatSessionDetail | null>(null)
   const currentSessionMessages = ref<ChatMessage[]>([])
   const loading = ref(false)
   const total = ref(0)

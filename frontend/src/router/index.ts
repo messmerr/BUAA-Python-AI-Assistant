@@ -132,7 +132,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     // 检查角色权限
-    if (to.meta.roles && to.meta.roles.length > 0) {
+    if (to.meta.roles && Array.isArray(to.meta.roles) && to.meta.roles.length > 0) {
       const userRole = authStore.user?.role
       if (!userRole || !to.meta.roles.includes(userRole)) {
         next({ name: 'Dashboard' })

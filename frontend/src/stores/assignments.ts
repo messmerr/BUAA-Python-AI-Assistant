@@ -57,17 +57,11 @@ export const useAssignmentsStore = defineStore('assignments', () => {
   const fetchAssignmentDetail = async (assignmentId: string) => {
     loading.value = true
     try {
-      console.log('Store: 开始获取作业详情，ID:', assignmentId)
       const response = await assignmentsApi.getAssignmentDetail(assignmentId)
-      console.log('Store: API响应:', response)
-
-      // 根据后端实际返回的数据格式解析
       if (response.data) {
         currentAssignment.value = response.data
-        console.log('Store: 作业详情设置成功:', currentAssignment.value)
         return response.data
       } else {
-        console.error('Store: 响应数据为空')
         throw new Error('响应数据为空')
       }
     } catch (error) {
@@ -152,9 +146,8 @@ export const useAssignmentsStore = defineStore('assignments', () => {
 
       ElMessage.success('作业提交成功')
       return response.data
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('提交作业失败:', error)
-      console.error('错误详情:', error.response?.data)
       throw error
     } finally {
       loading.value = false
@@ -170,7 +163,21 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     loading.value = true
     try {
       const response = await assignmentsApi.getSubmissions(assignmentId, params)
-      submissions.value = response.data.submissions
+      const rawSubmissions = response.data.submissions || []
+      submissions.value = rawSubmissions.map((item: Record<string, unknown>) => ({
+        id: String(item.id),
+        assignment_title: String(item.assignment_title || ''),
+        student_id: String(item.student_id || ''),
+        student_name: String(item.student_name || ''),
+        student_username: String(item.student_username || ''),
+        status: String(item.status) as 'submitted' | 'grading' | 'graded',
+        total_score: Number(item.total_score || 0),
+        obtained_score: Number(item.obtained_score || 0),
+        overall_feedback: String(item.overall_feedback || ''),
+        submitted_at: String(item.submitted_at || ''),
+        graded_at: item.graded_at ? String(item.graded_at) : undefined,
+        answers: []
+      }))
       return response.data
     } catch (error) {
       console.error('获取提交列表失败:', error)

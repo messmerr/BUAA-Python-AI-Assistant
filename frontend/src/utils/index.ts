@@ -174,22 +174,22 @@ export function validateStudentId(studentId: string): boolean {
 /**
  * 防抖函数
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
+  let timeout: number | null = null
   
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
+    timeout = window.setTimeout(() => func(...args), wait)
   }
 }
 
 /**
  * 节流函数
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {

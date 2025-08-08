@@ -1,5 +1,5 @@
 // 通用API响应格式
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -73,19 +73,27 @@ export interface Question {
 
 export interface Answer {
   id: string
-  question: string
-  answer_text: string
+  question_id: string
+  question_text: string
+  student_answer: string
+  reference_answer: string
   score: number
-  feedback: string
+  question_score: number
+  obtained_score: number
+  ai_feedback: string
+  student_image_url?: string
 }
 
 export interface Submission {
   id: string
-  assignment: string
-  student: string
+  assignment_title: string
+  student_id?: string
+  student_name?: string
+  student_username?: string
   status: 'submitted' | 'grading' | 'graded'
   total_score: number
-  feedback: string
+  obtained_score: number
+  overall_feedback: string
   submitted_at: string
   graded_at?: string
   answers: Answer[]
@@ -128,6 +136,38 @@ export interface CreateQuestionRequest {
   context?: string
 }
 
+// 聊天相关类型
+export interface ChatMessage {
+  id: string
+  sender_id: string
+  receiver_id: string
+  content: string
+  is_read: boolean
+  created_at: string
+  sender: 'teacher' | 'student'
+}
+
+export interface ChatSession {
+  id: string
+  subject: string
+  created_at: string
+  updated_at: string
+  last_message?: {
+    role: 'user' | 'ai'
+    content: string
+    created_at: string
+  }
+  message_count: number
+}
+
+export interface ChatSessionDetail {
+  id: string
+  subject: string
+  created_at: string
+  updated_at: string
+  messages: ChatMessage[]
+}
+
 // 学习报告相关类型
 export interface LearningReport {
   id: string
@@ -154,6 +194,26 @@ export interface GenerateReportRequest {
   subjects?: string[]
 }
 
+export interface ClassReportRequest {
+  period: 'week' | 'month' | 'semester' | 'all'
+  subjects: string[]
+}
+
+export interface ClassReportResponse {
+  report_data: {
+    total_students: number
+    active_students: number
+    average_score: number
+    subjects: string[]
+    period: string
+  }
+  students: Array<{
+    id: string
+    real_name: string
+    username: string
+  }>
+}
+
 // 通用工具类型
 export interface SelectOption {
   label: string
@@ -167,7 +227,7 @@ export interface TableColumn {
   minWidth?: string | number
   align?: 'left' | 'center' | 'right'
   sortable?: boolean
-  formatter?: (row: any, column: any, cellValue: any) => string
+  formatter?: (row: Record<string, unknown>, column: Record<string, unknown>, cellValue: unknown) => string
 }
 
 // 路由元信息
