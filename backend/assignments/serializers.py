@@ -183,7 +183,6 @@ class AssignmentSubmissionSerializer(serializers.Serializer):
                 )
 
 # --- 第一个冲突点：修改结束 ---
-            )
             
             if ai_score is None:
             # 使用AI批改答案
