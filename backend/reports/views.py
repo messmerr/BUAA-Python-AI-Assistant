@@ -157,8 +157,8 @@ def calculate_statistics(data):
     if submissions:
         try:
             for submission in submissions:
-                if hasattr(submission, 'total_score') and hasattr(submission, 'assignment'):
-                    total_score += submission.total_score or 0
+                if hasattr(submission, 'obtained_score') and hasattr(submission, 'assignment'):
+                    total_score += submission.obtained_score or 0
                     total_possible += getattr(submission.assignment, 'total_score', 0)
         except Exception as e:
             print(f"[DEBUG] 计算得分失败: {e}")
@@ -204,13 +204,13 @@ def generate_report_content(student, data, statistics, period, subjects):
     if data['submissions']:
         try:
             for submission in data['submissions']:
-                if hasattr(submission, 'assignment') and hasattr(submission, 'total_score'):
+                if hasattr(submission, 'assignment') and hasattr(submission, 'obtained_score'):
                     assignment_detail = {
                         'title': getattr(submission.assignment, 'title', '未知作业'),
                         'subject': getattr(submission.assignment, 'subject', '未知科目'),
-                        'score': submission.total_score or 0,
+                        'score': submission.obtained_score or 0,
                         'max_score': getattr(submission.assignment, 'total_score', 0),
-                        'score_percentage': round((submission.total_score / submission.assignment.total_score * 100), 2) if getattr(submission.assignment, 'total_score', 0) > 0 else 0,
+                        'score_percentage': round((submission.obtained_score / submission.assignment.total_score * 100), 2) if getattr(submission.assignment, 'total_score', 0) > 0 else 0,
                         'submitted_at': submission.submitted_at.strftime('%Y-%m-%d %H:%M') if hasattr(submission, 'submitted_at') else '未知时间',
                         'questions_performance': []
                     }
@@ -222,9 +222,9 @@ def generate_report_content(student, data, statistics, period, subjects):
                                 question_perf = {
                                     'question': getattr(answer.question, 'question_text', '未知问题')[:100] + ('...' if len(getattr(answer.question, 'question_text', '')) > 100 else ''),
                                     'student_answer': getattr(answer, 'answer_text', '无答案')[:200] + ('...' if len(getattr(answer, 'answer_text', '')) > 200 else ''),
-                                    'score': getattr(answer, 'score', 0),
+                                    'score': getattr(answer, 'obtained_score', 0),
                                     'max_score': getattr(answer.question, 'score', 0),
-                                    'feedback': getattr(answer, 'feedback', '无反馈')[:200] + ('...' if len(getattr(answer, 'feedback', '')) > 200 else '')
+                                    'feedback': getattr(answer, 'ai_feedback', '无反馈')[:200] + ('...' if len(getattr(answer, 'ai_feedback', '')) > 200 else '')
                                 }
                                 assignment_detail['questions_performance'].append(question_perf)
                     except Exception as e:
@@ -389,8 +389,8 @@ def generate_simple_report(student, period, subjects, statistics, data=None):
             subjects_performance = {}
             
             for submission in data['submissions']:
-                if hasattr(submission, 'total_score') and hasattr(submission, 'assignment'):
-                    score = submission.total_score or 0
+                if hasattr(submission, 'obtained_score') and hasattr(submission, 'assignment'):
+                    score = submission.obtained_score or 0
                     max_score = getattr(submission.assignment, 'total_score', 0)
                     if max_score > 0:
                         percentage = round((score / max_score) * 100, 2)
