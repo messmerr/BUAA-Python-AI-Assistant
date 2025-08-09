@@ -78,7 +78,6 @@ export interface Answer {
   student_answer: string
   reference_answer: string
   score: number
-  question_score: number
   obtained_score: number
   ai_feedback: string
   student_image_url?: string

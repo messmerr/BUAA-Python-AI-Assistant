@@ -65,13 +65,13 @@
               <div class="question-info">
                 <span class="question-number">第{{ index + 1 }}题</span>
                 <span class="question-score">
-                  {{ answer.obtained_score }}/{{ answer.question_score }}分
+                  {{ answer.obtained_score }}/{{ answer.score }}分
                 </span>
               </div>
               <el-tag 
-                :type="getQuestionScoreType(answer.obtained_score, answer.question_score)"
+                :type="getQuestionScoreType(answer.obtained_score, answer.score)"
               >
-                {{ getScorePercentage(answer.obtained_score, answer.question_score) }}%
+                {{ getScorePercentage(answer.obtained_score, answer.score) }}%
               </el-tag>
             </div>
 
