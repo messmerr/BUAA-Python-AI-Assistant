@@ -1,116 +1,59 @@
-# AI助教系统 API 快速参考
+## AI助教系统 API 快速参考
 
-## 基础信息
-- **Base URL**: `http://localhost:8000/api/v1`
-- **认证**: `Authorization: Bearer <jwt_token>`
-- **格式**: JSON
-- **AI处理**: 所有批改、OCR、答疑均由大模型API处理
+### 基础信息
+- Base URL: `http://localhost:8000/api/v1`
+- 认证: `Authorization: Bearer <access_token>`（除注册/登录外均需）
+- 数据格式: `application/json`（作业提交也支持 `multipart/form-data`）
+- 在线文档: `http://localhost:8000/api/docs/`
 
-## 📊 实现状态总览
+### 模块与端点速览
 
-### 必做功能 (3/4 模块)
-- ✅ **用户认证** - 5/5 接口已实现
-- ✅ **作业管理** - 7/7 接口已实现
-- ✅ **智能答疑** - 6/6 接口已实现（升级为多轮对话）
-- ❌ **学习报告** - 0/3 接口已实现
+#### 账号与认证（accounts）
+- POST `/auth/register/` 用户注册（teacher|student）
+- POST `/auth/login/` 登录，返回 `access_token` 与 `refresh_token`
+- POST `/auth/refresh/` 刷新访问令牌（请求体需携带 `refresh`）
+- GET  `/auth/profile/` 获取当前用户信息
+- PUT  `/auth/profile/` 更新当前用户信息（支持修改密码：`current_password`/`new_password`/`confirm_password`）
+- GET  `/auth/students/` 教师获取学生列表
 
-### 选做功能 (0/6 模块)
-- ❌ **图片识别** - 0/1 接口已实现
-- ⚠️ **高级答疑** - 1/2 接口已实现
-- ❌ **资源推荐** - 0/3 接口已实现
-- ❌ **数据分析** - 0/3 接口已实现
-- ❌ **实时互动** - 0/3 接口已实现
-- ❌ **通用���口** - 0/2 接口已实现
+#### 作业管理与批改（assignments）
+- POST `/assignments/create/` 教师创建作业
+- GET  `/assignments/list/` 作业列表（支持科目、状态、完成度筛选与分页）
+- GET  `/assignments/{assignment_id}/` 作业详情
+- POST `/assignments/{assignment_id}/submissions/` 学生提交作业（文本或图片二选一）
+- GET  `/assignments/{assignment_id}/submissions/list/` 提交列表（教师全部/学生本人）
+- GET  `/assignments/{assignment_id}/result/` 获取批改结果（教师需传 `student_id`）
+- GET  `/assignments/{assignment_id}/submissions/{submission_id}/` 获取批改结果（旧接口，兼容）
 
-**总体进度**: 19/30 接口已实现 (63%)
+常用查询参数：
+- 列表分页: `page`, `page_size`
+- 作业列表: `status`=`active|expired`, `subject`, `completion_status`=`completed|pending|all`
+- 提交列表: `student`（教师按用户名模糊筛）
 
-## 必做功能接口
+#### 智能答疑（qa）
+- POST `/qa/chat/` 学生向AI发送聊天消息（多轮，会创建/复用 `session`）
+- GET  `/qa/sessions/` 会话列表（按学科与分页筛选）
+- GET  `/qa/sessions/{session_id}/` 会话详情（含消息）
+- POST `/qa/questions/` 学生提交问题（旧接口，单轮）
+- GET  `/qa/questions/list/` 问题列表
+- GET  `/qa/questions/{question_id}/` 问题详情
 
-### 用户认证 ✅ 已实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/auth/register/` | 用户注册 | 公开 | ✅ |
-| POST | `/auth/login/` | 用户登录 | 公开 | ✅ |
-| POST | `/auth/refresh/` | 刷新Token | 需要refresh_token | ✅ |
-| GET | `/auth/profile/` | 获取用户信息 | 登录用户 | ✅ |
-| PUT | `/auth/profile/update/` | 更新用户信息 | 登录用户 | ✅ |
+#### 学习报告（reports）
+- POST `/reports/generate/` 生成学习报告（学生自身/教师为指定学生）
+- GET  `/reports/list/` 报告列表（学生仅自己，教师全部）
+- GET  `/reports/{report_id}/` 报告详情
+- POST `/reports/class/generate/` 教师生成班级报告（返回统计与AI报告文本）
 
-### 作业管理 ✅ 已实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/assignments/create/` | 创建作业 | 教师 | ✅ |
-| GET | `/assignments/list/` | 获取作业列表 | 登录用户 | ✅ |
-| GET | `/assignments/{id}/` | 获取作业详情 | 登录用户 | ✅ |
-| POST | `/assignments/{id}/submissions/` | 提交作业 | 学生 | ✅ |
-| GET | `/assignments/{id}/submissions/list/` | 获取提交列表 | 学生/教师 | ✅ |
-| GET | `/assignments/{id}/result/` | 获取批改结果 | 学生/教师 | ✅ |
-| GET | `/assignments/{id}/submissions/{sub_id}/` | 获取批改结果(旧) | 学生/教师 | ✅ |
+#### 站内私信（chat）
+- GET  `/chat/users/` 可聊天用户列表（教师⇄学生）
+- GET  `/chat/messages/{user_id}/` 与指定用户的聊天记录（分页）
+- POST `/chat/messages/` 发送消息（`receiver_id`, `content`）
+- POST `/chat/messages/{user_id}/read/` 将与该用户的未读设为已读
+- GET  `/chat/unread-count/` 当前用户未读总数
 
-### 智能答疑 ✅ 已升级（多轮对话）
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/qa/chat/` | 发送聊天消息（新） | 学生 | ✅ |
-| GET | `/qa/sessions/` | 获取会话列表（新） | 登录用户 | ✅ |
-| GET | `/qa/sessions/{id}/` | 获取会话详情（新） | 登录用户 | ✅ |
-| POST | `/qa/questions/` | 提交问题（兼容） | 学生 | ✅ |
-| GET | `/qa/questions/list/` | 获取问题列表（兼容） | 登录用户 | ✅ |
-| GET | `/qa/questions/{id}/` | 获取问题详情（兼容） | 登录用户 | ✅ |
+### 典型请求示例
 
-### 学习报告 ❌ 未实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/reports/generate/` | 生成学习报告 | 学生/教师 | ❌ |
-| GET | `/reports/list/` | 获取报告列表 | 学生/教师 | ❌ |
-| GET | `/reports/{id}/` | 获取报告详情 | 学生/教师 | ❌ |
-
-## 选做功能接口
-
-### 图片识别 ❌ 未实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/assignments/{id}/submissions/image/` | 上传图片作业 | 学生 | ❌ |
-
-### 高级答疑 ⚠️ 部分实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/qa/questions/advanced/` | 深度AI问答 | 学生 | ❌ |
-| GET | `/qa/questions/list/` | 获取问答历史 | 登录用户 | ✅ |
-
-### 资源推荐 ❌ 未实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| GET | `/recommendations/` | 获取个性化推荐 | 学生 | ❌ |
-| POST | `/recommendations/{id}/favorite/` | 收藏资源 | 学生 | ❌ |
-| GET | `/recommendations/favorites/` | 获取收藏列表 | 学生 | ❌ |
-
-### 数据分析（教师端） ❌ 未实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| GET | `/analytics/class/overview/` | 班级整体统计 | 教师 | ❌ |
-| GET | `/analytics/assignments/{id}/stats/` | 作业统计分析 | 教师 | ❌ |
-| GET | `/analytics/qa/common-issues/` | 常见问题汇总 | 教师 | ❌ |
-
-### 实时互动 ❌ 未实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/chat/messages/` | 发送消息 | 登录用户 | ❌ |
-| GET | `/chat/conversations/{user_id}/` | 获取聊天记录 | 登录用户 | ❌ |
-| WS | `/ws/chat/{user_id}/` | WebSocket连接 | 登录用户 | ❌ |
-
-### 其他选做功能 ❌ 未实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| GET | `/reports/` | 获取历史报告 | 学生/教师 | ❌ |
-
-### 通用接口 ❌ 未实现
-| 方法 | 路径 | 描述 | 权限 | 状态 |
-|------|------|------|------|------|
-| POST | `/files/upload/` | 文件上传 | 登录用户 | ❌ |
-| GET | `/system/config/` | 系统配置 | 公开 | ❌ |
-
-## 常用请求示例
-
-### 用户注册 ✅
+注册
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/register/ \
   -H "Content-Type: application/json" \
@@ -124,7 +67,7 @@ curl -X POST http://localhost:8000/api/v1/auth/register/ \
   }'
 ```
 
-### 用户登录 ✅
+登录
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/login/ \
   -H "Content-Type: application/json" \
@@ -134,231 +77,87 @@ curl -X POST http://localhost:8000/api/v1/auth/login/ \
   }'
 ```
 
-### 创建作业（教师）✅
+创建作业（教师）
 ```bash
 curl -X POST http://localhost:8000/api/v1/assignments/create/ \
-  -H "Content-Type: application/json" \
   -H "Authorization: Bearer <teacher_token>" \
+  -H "Content-Type: application/json" \
   -d '{
-    "title": "Python基础练习",
-    "description": "完成以下Python编程题目",
+    "title": "Python基础测试",
+    "description": "测试Python基础",
     "subject": "Python编程",
     "questions": [
       {
-        "question_text": "编写一个函数计算斐波那契数列",
-        "reference_answer": "def fibonacci(n): ...",
-        "score": 20,
-        "order": 1
+        "question_text": "什么是Python？",
+        "reference_answer": "示例参考答案",
+        "score": 10
       }
     ],
-    "deadline": "2025-08-01T23:59:59Z",
-    "total_score": 100
+    "deadline": "2025-12-01T23:59:59Z",
+    "total_score": 10
   }'
 ```
 
-### 提交作业（学生）✅
+提交作业（学生，文本）
 ```bash
-curl -X POST http://localhost:8000/api/v1/assignments/{assignment_id}/submissions/ \
-  -H "Content-Type: application/json" \
+curl -X POST http://localhost:8000/api/v1/assignments/<assignment_id>/submissions/ \
   -H "Authorization: Bearer <student_token>" \
+  -H "Content-Type: application/json" \
   -d '{
     "answers": [
       {
-        "question_id": "uuid",
-        "answer_text": "def fibonacci(n): if n <= 1: return n; return fibonacci(n-1) + fibonacci(n-2)"
+        "question_id": "<question_uuid>",
+        "answer_text": "我的答案"
       }
     ]
   }'
 ```
 
-### 智能答疑（新聊天接口）✅
+提交作业（学生，图片）
 ```bash
-# 开始新对话
+curl -X POST http://localhost:8000/api/v1/assignments/<assignment_id>/submissions/ \
+  -H "Authorization: Bearer <student_token>" \
+  -F "answers[0][question_id]=<question_uuid>" \
+  -F "answers[0][answer_image]=@answer.png"
+```
+
+智能答疑（多轮）
+```bash
 curl -X POST http://localhost:8000/api/v1/qa/chat/ \
-  -H "Content-Type: application/json" \
   -H "Authorization: Bearer <student_token>" \
-  -d '{
-    "message": "Python中列表和元组的区别是什么？",
-    "subject": "Python编程"
-  }'
-
-# 继续对话（使用返回的session_id）
-curl -X POST http://localhost:8000/api/v1/qa/chat/ \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <student_token>" \
   -d '{
-    "session_id": "uuid-from-previous-response",
-    "message": "能给我一个具体的代码示例吗？"
+    "message": "什么是递归？",
+    "subject": "计算机科学"
   }'
 ```
 
-### 获取会话列表（新接口）✅
+生成学习报告
 ```bash
-curl -X GET "http://localhost:8000/api/v1/qa/sessions/?page=1&page_size=10&subject=Python" \
-  -H "Authorization: Bearer <student_token>"
-```
-
-### 获取会话详情（新接口）✅
-```bash
-curl -X GET http://localhost:8000/api/v1/qa/sessions/{session_id}/ \
-  -H "Authorization: Bearer <student_token>"
-```
-
-### 获取作业列表 ✅
-```bash
-curl -X GET "http://localhost:8000/api/v1/assignments/list/?page=1&page_size=10&subject=Python&completion_status=pending" \
-  -H "Authorization: Bearer <student_token>"
-```
-
-### 获取作业详情 ✅
-```bash
-curl -X GET http://localhost:8000/api/v1/assignments/{assignment_id}/ \
-  -H "Authorization: Bearer <token>"
-```
-
-### 获取批改结果 ✅
-```bash
-curl -X GET http://localhost:8000/api/v1/assignments/{assignment_id}/submissions/{submission_id}/ \
-  -H "Authorization: Bearer <student_token>"
-```
-
-<!-- 以下为未实现功能的示例，暂时注释
-### 深度问答 ❌
-```bash
-curl -X POST http://localhost:8000/api/v1/qa/questions/advanced/ \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <student_token>" \
-  -d '{
-    "question_text": "解释机器学习中的过拟合现象",
-    "context": "正在学习机器学习算法",
-    "difficulty": "advanced"
-  }'
-```
-
-### 上传图片作业 ❌
-```bash
-curl -X POST http://localhost:8000/api/v1/assignments/{assignment_id}/submissions/image/ \
-  -H "Authorization: Bearer <student_token>" \
-  -F "image=@homework.jpg"
-```
-
-### 生成学习报告 ❌
-```bash
-# 教师为学生生成报告
 curl -X POST http://localhost:8000/api/v1/reports/generate/ \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <teacher_token>" \
   -d '{
-    "student_id": "student-uuid",
     "period": "month",
-    "subjects": ["Python编程"]
+    "subjects": [
+      "Python编程"
+    ],
+    "student_id": "<仅教师必填>"
   }'
+```
 
-# 学生为自己生成报告
-curl -X POST http://localhost:8000/api/v1/reports/generate/ \
+发送站内私信
+```bash
+curl -X POST http://localhost:8000/api/v1/chat/messages/ \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <student_token>" \
   -d '{
-    "period": "all"
+    "receiver_id": "<uuid>",
+    "content": "你好"
   }'
 ```
--->
 
-
-## 响应格式示例
-
-### 成功响应
-```json
-{
-    "code": 200,
-    "message": "success",
-    "data": {
-        "id": "uuid",
-        "name": "example"
-    },
-    "timestamp": "2025-07-23T10:00:00Z"
-}
-```
-
-### 错误响应
-```json
-{
-    "code": 400,
-    "message": "参数验证失败",
-    "errors": {
-        "username": ["用户名不能为空"],
-        "email": ["邮箱格式不正确"]
-    },
-    "timestamp": "2025-07-23T10:00:00Z"
-}
-```
-
-### 分页响应
-```json
-{
-    "code": 200,
-    "message": "获取成功",
-    "data": {
-        "items": [...],
-        "pagination": {
-            "page": 1,
-            "page_size": 10,
-            "total": 100,
-            "total_pages": 10,
-            "has_next": true,
-            "has_prev": false
-        }
-    },
-    "timestamp": "2025-07-23T10:00:00Z"
-}
-```
-
-## 状态码快速参考
-
-| 状态码 | 含义 | 常见场景 |
-|--------|------|----------|
-| 200 | 成功 | 正常请求 |
-| 201 | 创建成功 | 注册、创建资源 |
-| 400 | 请求错误 | 参数验证失败 |
-| 401 | 未授权 | 未登录或token过期 |
-| 403 | 权限不足 | 学生访问教师接口 |
-| 404 | 资源不存在 | 访问不存在的作业 |
-| 409 | 冲突 | 用户名已存在 |
-| 422 | 验证失败 | 数据格式错误 |
-| 429 | 频率限制 | 请求过于频繁 |
-| 500 | 服务器错误 | 系统异常 |
-
-## 开发提示
-
-1. **认证**: 除注册/登录外，所有接口都需要JWT token
-2. **权限**: 严格区分教师和学生权限
-3. **分页**: 列表接口支持分页，默认每页10条
-4. **文件上传**: 支持多种格式，注意大小限制
-5. **实时功能**: 使用WebSocket实现实时通信
-6. **错误处理**: 统一错误格式，便于前端处理
-7. **安全**: 所有输入都需要验证和过滤
-
-## 📝 开发状态说明
-
-### ✅ 已完成的核心功能
-- **用户系统**: 注册、登录、认证、权限控制
-- **作业管理**: 创建、列表、详情、提交、批改
-- **智能答疑**: 多轮对话、会话管理、上下文记忆、历史查询
-- **AI集成**: Google Gemini API集成，支持自动批改和答疑
-
-### 🔄 当前开发重点
-- **前端界面**: Vue.js前端页面开发中
-- **用户体验**: 界面优化和交互完善
-
-### 📋 待实现功能
-- **学习报告**: 数据分析和报告生成
-- **图片识别**: OCR功能和图片作业处理
-- **高级功能**: 资源推荐、数据可视化、实时互动
-
-### 🚀 部署信息
-- **开发环境**: `http://localhost:8000`
-- **API文档**: `http://localhost:8000/api/docs/`
-- **数据库**: SQLite (开发环境)
-- **AI服务**: Google Gemini API
-
-**最后更新**: 2025-07-24
+### 响应约定与状态码
+- 成功: `{ code: 200|201, message: string, data: any }`
+- 失败: `{ code: 4xx|5xx, message: string, errors?: object }`
+- 常见状态码: 200/201/400/401/403/404/500
