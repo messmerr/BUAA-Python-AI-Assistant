@@ -323,11 +323,11 @@ def generate_report_content(student, data, statistics, period, subjects):
 请用专业、客观、建设性的语言撰写报告，字数控制在1000-1500字。
 """
 
-        try:
-            ai_response = ask_gemini(prompt, temperature=0.7)
-            return ai_response
-        except Exception as e:
-            return f"报告生成失败，错误信息：{str(e)}"
+    try:
+        ai_response = ask_gemini(prompt, temperature=0.7)
+        return ai_response
+    except Exception as e:
+        return f"报告生成失败，错误信息：{str(e)}"
 
 
 def generate_simple_report(student, period, subjects, statistics, data=None):
