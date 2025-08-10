@@ -85,7 +85,5 @@ BUAA-Python-AI-Assistant/
 │  ├─ package.json
 │  └─ vite.config.ts
 ├─ docs/                        # API 文档
-│  └─ api/ (api_quick_reference.md, api_specification.md)
-├─ start-backend.ps1            # 一键启动后端
-└─ start-frontend.ps1           # 一键启动前端
+   └─ api/ (api_quick_reference.md, api_specification.md)
 ```
