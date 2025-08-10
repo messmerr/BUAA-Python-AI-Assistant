@@ -25,18 +25,14 @@ except ImportError:
 
 try:
     from assignments.models import Assignment, Submission, Answer
-    print("[DEBUG] 成功导入 assignments 模型")
 except ImportError as e:
-    print(f"[DEBUG] 导入 assignments 模型失败: {e}")
     Assignment = None
     Submission = None
     Answer = None
 
 try:
     from qa.models import QASession, QAMessage, QAQuestion
-    print("[DEBUG] 成功导入 qa 模型")
 except ImportError as e:
-    print(f"[DEBUG] 导入 qa 模型失败: {e}")
     QASession = None
     QAMessage = None
     QAQuestion = None
@@ -100,7 +96,7 @@ def collect_student_data(student, period, subjects):
                 assignment__in=assignments
             ).select_related('assignment').prefetch_related('answers__question')
         except Exception as e:
-            print(f"[DEBUG] 获取作业数据失败: {e}")
+            pass
 
     # 收集问答数据
     qa_sessions = []
@@ -114,7 +110,7 @@ def collect_student_data(student, period, subjects):
             if subjects:
                 qa_sessions = qa_sessions.filter(subject__in=subjects)
         except Exception as e:
-            print(f"[DEBUG] 获取QA会话数据失败: {e}")
+            pass
 
     # 也收集旧的QA数据以兼容
     old_qa_questions = []
@@ -128,7 +124,7 @@ def collect_student_data(student, period, subjects):
             if subjects:
                 old_qa_questions = old_qa_questions.filter(subject__in=subjects)
         except Exception as e:
-            print(f"[DEBUG] 获取旧QA数据失败: {e}")
+            pass
 
     return {
         'assignments': assignments,
@@ -161,7 +157,7 @@ def calculate_statistics(data):
                     total_score += submission.obtained_score or 0
                     total_possible += getattr(submission.assignment, 'total_score', 0)
         except Exception as e:
-            print(f"[DEBUG] 计算得分失败: {e}")
+            pass
 
     average_score = (total_score / total_possible * 100) if total_possible > 0 else 0
 
@@ -228,11 +224,11 @@ def generate_report_content(student, data, statistics, period, subjects):
                                 }
                                 assignment_detail['questions_performance'].append(question_perf)
                     except Exception as e:
-                        print(f"[DEBUG] 收集答案详情失败: {e}")
+                        pass
 
                     context_data['assignments_detail'].append(assignment_detail)
         except Exception as e:
-            print(f"[DEBUG] 收集作业详情失败: {e}")
+            pass
 
     # 收集问答详情
     if data['qa_sessions']:
@@ -257,9 +253,9 @@ def generate_report_content(student, data, statistics, period, subjects):
 
                             context_data['qa_detail'].append(qa_detail)
                     except Exception as e:
-                        print(f"[DEBUG] 处理会话消息失败: {e}")
+                        pass
         except Exception as e:
-            print(f"[DEBUG] 收集QA会话详情失败: {e}")
+            pass
 
     # 收集旧问答数据
     if data['old_qa_questions']:
@@ -274,7 +270,7 @@ def generate_report_content(student, data, statistics, period, subjects):
                     }
                     context_data['qa_detail'].append(qa_detail)
         except Exception as e:
-            print(f"[DEBUG] 收集旧QA数据详情失败: {e}")
+            pass
 
     # 构建AI提示词
     prompt = f"""
@@ -327,14 +323,11 @@ def generate_report_content(student, data, statistics, period, subjects):
 请用专业、客观、建设性的语言撰写报告，字数控制在1000-1500字。
 """
 
-    try:
-        print(f"[DEBUG] 开始生成学习报告，学生：{student.real_name}")
-        ai_response = ask_gemini(prompt, temperature=0.7)
-        print(f"[DEBUG] AI报告生成成功，长度：{len(ai_response)}")
-        return ai_response
-    except Exception as e:
-        print(f"[DEBUG] AI报告生成失败：{str(e)}")
-        return f"报告生成失败，错误信息：{str(e)}"
+        try:
+            ai_response = ask_gemini(prompt, temperature=0.7)
+            return ai_response
+        except Exception as e:
+            return f"报告生成失败，错误信息：{str(e)}"
 
 
 def generate_simple_report(student, period, subjects, statistics, data=None):
@@ -532,8 +525,6 @@ def generate_simple_report(student, period, subjects, statistics, data=None):
 @permission_classes([permissions.IsAuthenticated])
 def generate_report(request):
     """生成学习报告"""
-    print(f"[DEBUG] 生成报告请求 - 用户: {request.user.real_name}, 角色: {request.user.role}")
-    print(f"[DEBUG] 请求数据: {request.data}")
     
     serializer = LearningReportCreateSerializer(
         data=request.data,
@@ -541,7 +532,6 @@ def generate_report(request):
     )
 
     if not serializer.is_valid():
-        print(f"[DEBUG] 序列化器验证失败: {serializer.errors}")
         return Response({
             'code': 400,
             'message': '请求参数错误',
@@ -552,7 +542,6 @@ def generate_report(request):
         # 确定目标学生
         if request.user.role == 'teacher':
             student_id = serializer.validated_data.get('student_id')
-            print(f"[DEBUG] 教师生成报告，目标学生ID: {student_id}")
             
             if not student_id:
                 return Response({
@@ -562,7 +551,6 @@ def generate_report(request):
             
             try:
                 student = User.objects.get(id=student_id, role='student')
-                print(f"[DEBUG] 找到目标学生: {student.real_name}")
             except User.DoesNotExist:
                 return Response({
                     'code': 404,
@@ -571,12 +559,10 @@ def generate_report(request):
         else:
             # 学生只能为自己生成报告
             student = request.user
-            print(f"[DEBUG] 学生自己生成报告: {student.real_name}")
 
         period = serializer.validated_data['period']
         subjects = serializer.validated_data.get('subjects', [])
         
-        print(f"[DEBUG] 报告参数 - 时间段: {period}, 科目: {subjects}")
         
         # 创建报告记录
         report = LearningReport.objects.create(
@@ -590,9 +576,7 @@ def generate_report(request):
         # 收集学习数据
         try:
             data = collect_student_data(student, period, subjects)
-            print(f"[DEBUG] 数据收集成功")
         except Exception as e:
-            print(f"[DEBUG] 数据收集失败: {e}")
             data = {
                 'assignments': [],
                 'submissions': [],
@@ -604,9 +588,7 @@ def generate_report(request):
         # 计算统计数据
         try:
             statistics = calculate_statistics(data)
-            print(f"[DEBUG] 统计计算成功: {statistics}")
         except Exception as e:
-            print(f"[DEBUG] 统计计算失败: {e}")
             statistics = {
                 'total_assignments': 0,
                 'completed_assignments': 0,
@@ -623,9 +605,7 @@ def generate_report(request):
         # 生成报告内容
         try:
             report_content = generate_report_content(student, data, statistics, period, subjects)
-            print(f"[DEBUG] 报告内容生成成功，长度: {len(report_content)}")
         except Exception as e:
-            print(f"[DEBUG] 详细报告生成失败: {e}，使用简化版本")
             report_content = generate_simple_report(student, period, subjects, statistics, data)  # 传入data参数
 
         # 更新报告
@@ -786,9 +766,9 @@ def collect_class_data(period, subjects):
                 assignment__in=all_assignments,
                 student__role='student'  # 确保只查询学生的提交
             ).select_related('assignment', 'student').prefetch_related('answers__question'))
-            print(f"[DEBUG] 查询到 {len(all_assignments)} 个作业，{len(all_submissions)} 个提交")
+            pass
         except Exception as e:
-            print(f"[DEBUG] 获取班级作业数据失败: {e}")
+            pass
 
     # 直接查询所有问答数据
     if QASession is not None:
@@ -800,9 +780,9 @@ def collect_class_data(period, subjects):
             ).select_related('student').prefetch_related('messages'))
             if subjects:
                 all_qa_sessions = [s for s in all_qa_sessions if s.subject in subjects]
-            print(f"[DEBUG] 查询到 {len(all_qa_sessions)} 个QA会话")
+            pass
         except Exception as e:
-            print(f"[DEBUG] 获取班级QA会话数据失败: {e}")
+            pass
 
     # 查询旧的QA数据
     if QAQuestion is not None:
@@ -814,9 +794,9 @@ def collect_class_data(period, subjects):
             ).select_related('student', 'answer'))
             if subjects:
                 all_old_qa_questions = [q for q in all_old_qa_questions if q.subject in subjects]
-            print(f"[DEBUG] 查询到 {len(all_old_qa_questions)} 个旧QA问题")
+            pass
         except Exception as e:
-            print(f"[DEBUG] 获取班级旧QA数据失败: {e}")
+            pass
     
     return {
         'students': list(students),
@@ -954,7 +934,7 @@ def generate_class_report_content(data, statistics, period, subjects):
         
         context_data['qa_analysis'] = sorted(question_keywords.items(), key=lambda x: x[1], reverse=True)[:5]
     except Exception as e:
-        print(f"[DEBUG] 问答分析失败: {e}")
+        pass
     
     # 构建AI提示词
     prompt = f"""
@@ -1009,25 +989,17 @@ def generate_class_report_content(data, statistics, period, subjects):
 """
 
     try:
-        print(f"[DEBUG] 开始生成班级报告")
         ai_response = ask_gemini(prompt, temperature=0.7)
-        print(f"[DEBUG] 班级报告生成成功，长度：{len(ai_response)}")
         return ai_response
     except Exception as e:
-        print(f"[DEBUG] 班级报告生成失败：{str(e)}")
         return f"班级报告生成失败，错误信息：{str(e)}"
 
-print(f"[DEBUG] ===== views.py 文件被加载 =====")
-
-# 在函数定义前添加
-print(f"[DEBUG] 准备定义 generate_class_report 函数")
 
 @api_view(['POST'])
 @permission_classes([IsTeacher])
 def generate_class_report(request):
     """生成班级报告"""
-    logger.info("===== generate_class_report 开始 =====")
-    logger.info(f"用户: {request.user.real_name}, 角色: {request.user.role}")
+    logger.info("generate_class_report 开始")
     
     # 验证请求数据
     serializer = ClassReportCreateSerializer(data=request.data)
@@ -1046,19 +1018,13 @@ def generate_class_report(request):
 
     try:
         # 收集班级数据
-        logger.info("准备调用 collect_class_data")
         data = collect_class_data(period, subjects)
-        logger.info("collect_class_data 调用完成")
 
         # 计算统计数据
-        logger.info("准备调用 calculate_class_statistics")
         statistics = calculate_class_statistics(data)
-        logger.info("calculate_class_statistics 调用完成")
 
         # 生成AI报告内容
-        logger.info("准备调用 generate_class_report_content")
         report_content = generate_class_report_content(data, statistics, period, subjects)
-        logger.info("generate_class_report_content 调用完成")
 
         response_data = {
             'statistics': statistics,
@@ -1066,7 +1032,6 @@ def generate_class_report(request):
             'generated_at': timezone.now()
         }
 
-        logger.info("班级报告生成成功，返回数据")
         return Response({
             'code': 200,
             'message': '班级报告生成成功',
@@ -1075,11 +1040,9 @@ def generate_class_report(request):
 
     except Exception as e:
         logger.error(f"班级报告生成异常: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return Response({
             'code': 500,
             'message': f'班级报告生成失败：{str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-print(f"[DEBUG] generate_class_report 函数定义完成")
+

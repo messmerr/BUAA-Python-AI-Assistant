@@ -13,5 +13,3 @@ urlpatterns = [
     path('class/generate/', views.generate_class_report, name='generate_class_report'),
 ]
 
-# 添加调试信息
-print(f"[DEBUG] reports URLs loaded: {[str(pattern.pattern) for pattern in urlpatterns]}")

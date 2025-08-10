@@ -144,9 +144,7 @@ class QAQuestionCreateSerializer(serializers.ModelSerializer):
 <answer>详细的回答内容</answer>
 """
             
-            print(f"[DEBUG] 开始AI答疑，问题：{question.question_text[:30]}...")
             ai_response = ask_gemini(prompt, temperature=0.7)
-            print(f"[DEBUG] AI响应：{ai_response[:100]}...")
             
             # 解析AI回答
             try:
@@ -154,17 +152,13 @@ class QAQuestionCreateSerializer(serializers.ModelSerializer):
                 answer_match = re.search(r'<answer>(.*?)</answer>', ai_response, re.DOTALL)
                 if answer_match:
                     answer = answer_match.group(1).strip()
-                    print(f"[DEBUG] 解析回答：{answer[:50]}...")
                     return answer
                 else:
-                    print(f"[DEBUG] 未找到<answer>标签，使用原始响应")
                     return ai_response.strip()
             except Exception as parse_error:
-                print(f"[DEBUG] 回答解析失败：{parse_error}")
                 return ai_response.strip()
                 
         except Exception as e:
-            print(f"[DEBUG] AI答疑异常：{str(e)}")
             return f"抱歉，AI助教暂时无法回答您的问题。请稍后重试或联系人工老师。错误信息：{str(e)}"
 
 
